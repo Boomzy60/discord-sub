@@ -1,7 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, health
+from app.api.routes import (
+    auth,
+    health,
+    payments_crypto,
+    payments_paypal,
+    webhooks_nowpayments,
+    webhooks_paypal,
+)
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
@@ -23,3 +30,7 @@ register_exception_handlers(app)
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(payments_paypal.router)
+app.include_router(payments_crypto.router)
+app.include_router(webhooks_paypal.router)
+app.include_router(webhooks_nowpayments.router)
