@@ -1,0 +1,61 @@
+- generic [active] [ref=f1e1]:
+  - banner [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - link "Discord Subs" [ref=f1e4] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=f1e5]:
+        - link "Pricing" [ref=f1e6] [cursor=pointer]:
+          - /url: /pricing
+        - link "Login with Discord" [ref=f1e7] [cursor=pointer]:
+          - /url: http://localhost:8000/auth/discord/login
+  - main [ref=f1e8]:
+    - generic [ref=f1e9]:
+      - generic [ref=f1e10]:
+        - heading "Choose your plan" [level=1] [ref=f1e11]
+        - paragraph [ref=f1e12]: Unlock premium roles in our Discord community.
+      - generic [ref=f1e13]:
+        - generic [ref=f1e14]:
+          - generic [ref=f1e15]:
+            - generic [ref=f1e16]: Bronze
+            - generic [ref=f1e17]:
+              - generic [ref=f1e18]: $4.99
+              - text: / month
+          - list [ref=f1e20]:
+            - listitem [ref=f1e21]:
+              - generic [ref=f1e24]: Access to the community lounge
+            - listitem [ref=f1e25]:
+              - generic [ref=f1e28]: Monthly community Q&A
+          - link "Subscribe" [ref=f1e30] [cursor=pointer]:
+            - /url: http://localhost:8000/auth/discord/login
+        - generic [ref=f1e31]:
+          - generic [ref=f1e32]:
+            - generic [ref=f1e33]: Most Popular
+            - generic [ref=f1e34]: Silver
+            - generic [ref=f1e35]:
+              - generic [ref=f1e36]: $9.99
+              - text: / month
+          - list [ref=f1e38]:
+            - listitem [ref=f1e39]:
+              - generic [ref=f1e42]: Everything in Bronze
+            - listitem [ref=f1e43]:
+              - generic [ref=f1e46]: Exclusive Silver-only channels
+            - listitem [ref=f1e47]:
+              - generic [ref=f1e50]: Priority support
+          - link "Subscribe" [ref=f1e52] [cursor=pointer]:
+            - /url: http://localhost:8000/auth/discord/login
+        - generic [ref=f1e53]:
+          - generic [ref=f1e54]:
+            - generic [ref=f1e55]: Gold
+            - generic [ref=f1e56]:
+              - generic [ref=f1e57]: $19.99
+              - text: / month
+          - list [ref=f1e59]:
+            - listitem [ref=f1e60]:
+              - generic [ref=f1e63]: Everything in Silver
+            - listitem [ref=f1e64]:
+              - generic [ref=f1e67]: VIP badge and colored name
+            - listitem [ref=f1e68]:
+              - generic [ref=f1e71]: 1-on-1 support access
+          - link "Subscribe" [ref=f1e73] [cursor=pointer]:
+            - /url: http://localhost:8000/auth/discord/login
+  - button "Open Next.js Dev Tools" [ref=f1e79] [cursor=pointer]
