@@ -1,0 +1,36 @@
+import uuid
+from datetime import datetime, timedelta, timezone
+
+import jwt
+
+from app.core.config import get_settings
+
+settings = get_settings()
+
+SESSION_COOKIE_NAME = "session"
+
+
+def create_access_token(user_id: uuid.UUID) -> str:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.jwt_expires_minutes),
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def decode_access_token(token: str) -> uuid.UUID | None:
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    except jwt.PyJWTError:
+        return None
+
+    subject = payload.get("sub")
+    if subject is None:
+        return None
+
+    try:
+        return uuid.UUID(subject)
+    except ValueError:
+        return None
