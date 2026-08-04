@@ -24,6 +24,19 @@ class SubscriptionActivationError(Exception):
     """Raised when a confirmed payment cannot be applied to a subscription."""
 
 
+def _as_aware_utc(value: datetime) -> datetime:
+    """Treat a naive datetime as UTC; a no-op for already-aware values.
+
+    SQLite (used by the test suite) does not round-trip `tzinfo` through
+    `DateTime(timezone=True)`, so a reloaded column can come back naive even
+    though it was always written as UTC. Postgres preserves tzinfo, so this
+    is a no-op in production.
+    """
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
 async def start_checkout(
     db: AsyncSession,
     *,
@@ -86,17 +99,10 @@ async def activate_subscription(db: AsyncSession, payment: Payment) -> Subscript
     if tier is None:
         raise SubscriptionActivationError(f"Subscription {subscription.id} has no tier")
 
-    now = datetime.now(timezone.utc)
-    still_active = subscription.status == SubscriptionStatus.ACTIVE and subscription.expires_at > now
-    base = subscription.expires_at if still_active else now
-
-    subscription.status = SubscriptionStatus.ACTIVE
-    subscription.starts_at = subscription.starts_at or now
-    subscription.expires_at = base + timedelta(days=tier.duration_days)
-
-    payment.status = PaymentStatus.PAID
-    payment.paid_at = now
-    await db.flush()
+    if payment.status not in (PaymentStatus.PENDING, PaymentStatus.PAID):
+        raise SubscriptionActivationError(
+            f"Payment {payment.id} is in terminal status {payment.status.value}; cannot activate"
+        )
 
     mapping_result = await db.execute(
         select(TierRoleMapping).where(TierRoleMapping.tier_id == tier.id)
@@ -105,13 +111,29 @@ async def activate_subscription(db: AsyncSession, payment: Payment) -> Subscript
     guild = await db.get(Guild, tier.guild_id)
     user = await db.get(User, subscription.user_id)
 
-    if mapping and guild and user:
-        await bot_client.assign_role(guild.guild_id, user.discord_id, mapping.discord_role_id)
-    else:
-        logger.warning(
-            "Skipping role assignment for subscription %s: missing tier role mapping, guild, or user",
-            subscription.id,
+    if mapping is None or guild is None or user is None:
+        raise SubscriptionActivationError(
+            f"Subscription {subscription.id} is missing its Discord role mapping, guild, or "
+            "user; refusing to activate without a way to grant the role"
         )
+
+    if payment.status == PaymentStatus.PENDING:
+        now = datetime.now(timezone.utc)
+        still_active = (
+            subscription.status == SubscriptionStatus.ACTIVE
+            and _as_aware_utc(subscription.expires_at) > now
+        )
+        base = _as_aware_utc(subscription.expires_at) if still_active else now
+
+        subscription.status = SubscriptionStatus.ACTIVE
+        subscription.starts_at = subscription.starts_at or now
+        subscription.expires_at = base + timedelta(days=tier.duration_days)
+
+        payment.status = PaymentStatus.PAID
+        payment.paid_at = now
+        await db.flush()
+
+    await bot_client.assign_role(guild.guild_id, user.discord_id, mapping.discord_role_id)
 
     return subscription
 

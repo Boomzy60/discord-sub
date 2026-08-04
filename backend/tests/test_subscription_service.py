@@ -188,3 +188,98 @@ async def test_process_webhook_raises_on_invalid_signature(db_session):
         assert False, "expected WebhookVerificationError"
     except WebhookVerificationError:
         pass
+
+
+@respx.mock
+async def test_activate_subscription_rejects_terminal_payment_status(db_session):
+    settings = get_settings()
+    _, tier, user = await _seed_guild_tier_user(db_session)
+    provider = FakeProvider()
+    payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+    payment.status = PaymentStatus.FAILED
+    await db_session.commit()
+
+    route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
+        return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+
+    try:
+        await activate_subscription(db_session, payment)
+        assert False, "expected SubscriptionActivationError"
+    except SubscriptionActivationError:
+        pass
+
+    assert not route.called
+
+
+@respx.mock
+async def test_activate_subscription_raises_when_tier_has_no_role_mapping(db_session):
+    settings = get_settings()
+    guild = Guild(guild_id="444", guild_name="Unmapped Guild")
+    user = User(discord_id="555", username="tester2")
+    db_session.add_all([guild, user])
+    await db_session.flush()
+
+    tier = SubscriptionTier(
+        guild_id=guild.id,
+        name="Unmapped",
+        price=5,
+        currency="USD",
+        billing_period=BillingPeriod.MONTHLY,
+        duration_days=30,
+    )
+    db_session.add(tier)
+    await db_session.commit()
+
+    provider = FakeProvider()
+    payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+
+    route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
+        return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+
+    try:
+        await activate_subscription(db_session, payment)
+        assert False, "expected SubscriptionActivationError"
+    except SubscriptionActivationError:
+        pass
+
+    assert not route.called
+    refreshed_payment = await db_session.get(Payment, payment.id)
+    assert refreshed_payment.status == PaymentStatus.PENDING
+
+
+@respx.mock
+async def test_activate_subscription_renewal_extends_from_current_expiry(db_session):
+    settings = get_settings()
+    _, tier, user = await _seed_guild_tier_user(db_session)
+    provider = FakeProvider()
+    first_payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+
+    respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
+        return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+
+    first_subscription = await activate_subscription(db_session, first_payment)
+    await db_session.commit()
+    first_expiry = first_subscription.expires_at
+
+    renewal_payment = Payment(
+        user_id=user.id,
+        subscription_id=first_subscription.id,
+        provider=PaymentProvider.PAYPAL,
+        payment_method="paypal",
+        amount=tier.price,
+        currency=tier.currency,
+        provider_transaction_id="fake-txn-renewal",
+        status=PaymentStatus.PENDING,
+    )
+    db_session.add(renewal_payment)
+    await db_session.commit()
+
+    renewed_subscription = await activate_subscription(db_session, renewal_payment)
+    await db_session.commit()
+
+    assert renewed_subscription.id == first_subscription.id
+    expected_expiry = first_expiry + timedelta(days=tier.duration_days)
+    assert abs((renewed_subscription.expires_at - expected_expiry).total_seconds()) < 1
