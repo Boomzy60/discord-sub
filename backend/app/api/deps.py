@@ -4,9 +4,10 @@ from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.security import SESSION_COOKIE_NAME, decode_access_token
 from app.db.session import get_db
-from app.models import User
+from app.models import Guild, User
 
 
 async def get_current_user(
@@ -32,3 +33,15 @@ async def get_current_admin_user(user: User = Depends(get_current_user)) -> User
     if not user.is_admin:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required")
     return user
+
+
+async def get_active_guild(db: AsyncSession = Depends(get_db)) -> Guild:
+    settings = get_settings()
+    result = await db.execute(select(Guild).where(Guild.guild_id == settings.discord_guild_id))
+    guild = result.scalar_one_or_none()
+    if guild is None:
+        guild = Guild(guild_id=settings.discord_guild_id, guild_name="Discord Server", active=True)
+        db.add(guild)
+        await db.commit()
+        await db.refresh(guild)
+    return guild

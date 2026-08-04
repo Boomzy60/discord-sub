@@ -7,6 +7,7 @@ NOWPayments, future providers) drives the same activation path.
 
 import logging
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,22 +45,40 @@ async def start_checkout(
     tier: SubscriptionTier,
     provider: PaymentProvider,
 ) -> tuple[Payment, str]:
-    """Create a pending subscription + payment row and start a provider checkout.
+    """Start a provider checkout for `user` + `tier`.
+
+    Reuses the user's existing active or pending subscription for this tier
+    (if any) so a repeat checkout renews/extends it via `activate_subscription`
+    instead of creating a second, competing subscription row. Only creates a
+    fresh `Subscription` when the user has no live one for this tier.
 
     Returns the persisted `Payment` and the provider's checkout URL.
     """
     now = datetime.now(timezone.utc)
-    subscription = Subscription(
-        user_id=user.id,
-        tier_id=tier.id,
-        status=SubscriptionStatus.PENDING,
-        starts_at=now,
-        expires_at=now,
+    existing = await db.execute(
+        select(Subscription).where(
+            Subscription.user_id == user.id,
+            Subscription.tier_id == tier.id,
+            Subscription.status.in_((SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING)),
+        )
     )
-    db.add(subscription)
-    await db.flush()
+    subscription = existing.scalar_one_or_none()
+    if subscription is None:
+        subscription = Subscription(
+            user_id=user.id,
+            tier_id=tier.id,
+            status=SubscriptionStatus.PENDING,
+            starts_at=now,
+            expires_at=now,
+        )
+        db.add(subscription)
+        await db.flush()
 
-    reference = str(subscription.id)
+    # A fresh reference per checkout attempt, not the (possibly reused)
+    # subscription id: some providers (NOWPayments) use this value directly
+    # as the transaction id used to look up the Payment row on webhook, so
+    # it must stay unique per attempt even when the subscription is reused.
+    reference = str(uuid4())
     created = await provider.create_payment(
         amount=float(tier.price),
         currency=tier.currency,

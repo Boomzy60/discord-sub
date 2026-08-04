@@ -35,15 +35,17 @@ export function UserMenu({ user }: { user: User }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2 px-2">
-          <Avatar className="size-8">
-            <AvatarImage src={avatarUrl(user)} alt={displayName} />
-            <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <span className="hidden sm:inline">{displayName}</span>
-        </Button>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger
+        render={
+          <Button variant="ghost" className="flex items-center gap-2 px-2">
+            <Avatar className="size-8">
+              <AvatarImage src={avatarUrl(user)} alt={displayName} />
+              <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <span className="hidden sm:inline">{displayName}</span>
+          </Button>
+        }
+      />
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
         <DropdownMenuSeparator />

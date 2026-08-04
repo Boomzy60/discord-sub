@@ -78,6 +78,39 @@ async def test_start_checkout_creates_pending_subscription_and_payment(db_sessio
     assert subscription.status == SubscriptionStatus.PENDING
 
 
+async def test_start_checkout_reuses_active_subscription_for_same_tier(db_session):
+    _, tier, user = await _seed_guild_tier_user(db_session)
+    provider = FakeProvider()
+
+    first_payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+    first_payment.status = PaymentStatus.PAID
+    await db_session.commit()
+    subscription = await db_session.get(Subscription, first_payment.subscription_id)
+    subscription.status = SubscriptionStatus.ACTIVE
+    subscription.expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+    await db_session.commit()
+
+    second_payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+
+    assert second_payment.subscription_id == first_payment.subscription_id
+    assert second_payment.payment_reference != first_payment.payment_reference
+    assert second_payment.provider_transaction_id != first_payment.provider_transaction_id
+
+
+async def test_start_checkout_creates_new_subscription_when_previous_expired(db_session):
+    _, tier, user = await _seed_guild_tier_user(db_session)
+    provider = FakeProvider()
+
+    first_payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+    subscription = await db_session.get(Subscription, first_payment.subscription_id)
+    subscription.status = SubscriptionStatus.EXPIRED
+    await db_session.commit()
+
+    second_payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+
+    assert second_payment.subscription_id != first_payment.subscription_id
+
+
 @respx.mock
 async def test_activate_subscription_marks_paid_and_assigns_role(db_session):
     settings = get_settings()

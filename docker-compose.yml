@@ -4,12 +4,17 @@ services:
       context: ./backend
     env_file:
       - .env
+    environment:
+      - BOT_INTERNAL_API_URL=http://bot:8001
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
     depends_on:
-      - bot
+      bot:
+        condition: service_healthy
+    networks:
+      - app-network
 
   bot:
     build:
@@ -20,6 +25,8 @@ services:
       - "8001:8001"
     volumes:
       - ./bot:/app
+    networks:
+      - app-network
 
   frontend:
     build:
@@ -30,5 +37,14 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

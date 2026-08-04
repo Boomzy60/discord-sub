@@ -6,6 +6,7 @@ from app.api.routes import (
     health,
     payments_crypto,
     payments_paypal,
+    tiers,
     webhooks_nowpayments,
     webhooks_paypal,
 )
@@ -30,6 +31,7 @@ register_exception_handlers(app)
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(tiers.router)
 app.include_router(payments_paypal.router)
 app.include_router(payments_crypto.router)
 app.include_router(webhooks_paypal.router)

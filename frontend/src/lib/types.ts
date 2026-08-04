@@ -14,3 +14,16 @@ export interface ApiEnvelope<T> {
   data: T | null;
   error: unknown;
 }
+
+export interface Tier {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  duration_days: number;
+  active: boolean;
+  display_order: number;
+  discord_role_id: string;
+  created_at: string;
+}
