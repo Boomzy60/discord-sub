@@ -1,3 +1,10 @@
+import truststore
+
+# Verify outbound TLS (Discord/PayPal/NOWPayments) against the OS certificate store instead
+# of certifi's bundle. Needed on machines where a corporate proxy or antivirus does TLS
+# inspection with a root CA that's trusted by Windows but not by certifi.
+truststore.inject_into_ssl()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

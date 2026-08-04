@@ -23,6 +23,8 @@ class FakeDiscordClient:
         self.remove_calls: list[tuple[str, str, str]] = []
         self.assign_exception: Exception | None = None
         self.remove_exception: Exception | None = None
+        self.notify_calls: list[dict] = []
+        self.notify_result: bool = True
 
     async def assign_role(self, guild_id: str, user_id: str, role_id: str) -> None:
         self.assign_calls.append((guild_id, user_id, role_id))
@@ -33,6 +35,10 @@ class FakeDiscordClient:
         self.remove_calls.append((guild_id, user_id, role_id))
         if self.remove_exception is not None:
             raise self.remove_exception
+
+    async def send_subscription_notification(self, **kwargs) -> bool:
+        self.notify_calls.append(kwargs)
+        return self.notify_result
 
 
 @pytest.fixture(autouse=True)

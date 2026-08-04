@@ -90,3 +90,62 @@ async def test_remove_role_returns_404_when_member_not_found(client, fake_discor
     )
 
     assert response.status_code == 404
+
+
+async def test_notify_subscription_activated_rejects_missing_secret(client):
+    response = await client.post(
+        "/internal/notify/subscription-activated",
+        json={
+            "user_id": "2",
+            "username": "tester",
+            "tier_name": "Gold",
+            "price": 19.99,
+            "currency": "USD",
+            "expires_at": "2026-09-01T00:00:00+00:00",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+async def test_notify_subscription_activated_calls_discord_client(
+    client, fake_discord_client, auth_headers
+):
+    payload = {
+        "user_id": "2",
+        "username": "tester",
+        "tier_name": "Gold",
+        "price": 19.99,
+        "currency": "USD",
+        "expires_at": "2026-09-01T00:00:00+00:00",
+    }
+
+    response = await client.post(
+        "/internal/notify/subscription-activated", json=payload, headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"success": True, "data": {"sent": True}, "error": None}
+    assert fake_discord_client.notify_calls == [payload]
+
+
+async def test_notify_subscription_activated_reports_when_not_sent(
+    client, fake_discord_client, auth_headers
+):
+    fake_discord_client.notify_result = False
+
+    response = await client.post(
+        "/internal/notify/subscription-activated",
+        json={
+            "user_id": "2",
+            "username": "tester",
+            "tier_name": "Gold",
+            "price": 19.99,
+            "currency": "USD",
+            "expires_at": "2026-09-01T00:00:00+00:00",
+        },
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"success": True, "data": {"sent": False}, "error": None}

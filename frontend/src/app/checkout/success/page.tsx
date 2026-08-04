@@ -12,7 +12,7 @@ export default function CheckoutSuccessPage() {
         We&apos;re confirming your payment now. Your Discord role is granted automatically as
         soon as it clears — no further action needed.
       </p>
-      <Button render={<Link href="/dashboard" />} className="mt-6">
+      <Button render={<Link href="/dashboard" />} nativeButton={false} className="mt-6">
         Go to dashboard
       </Button>
     </div>

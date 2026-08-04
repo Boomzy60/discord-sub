@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     discord_bot_token: str = ""
+    discord_log_channel_id: str = ""
 
     bot_internal_api_host: str = "0.0.0.0"
     bot_internal_api_port: int = 8001

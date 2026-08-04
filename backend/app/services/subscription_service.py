@@ -154,6 +154,15 @@ async def activate_subscription(db: AsyncSession, payment: Payment) -> Subscript
 
     await bot_client.assign_role(guild.guild_id, user.discord_id, mapping.discord_role_id)
 
+    await bot_client.notify_subscription_activated(
+        discord_user_id=user.discord_id,
+        username=user.username,
+        tier_name=tier.name,
+        price=float(tier.price),
+        currency=tier.currency,
+        expires_at=subscription.expires_at.isoformat(),
+    )
+
     return subscription
 
 

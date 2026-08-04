@@ -25,6 +25,15 @@ class RoleActionRequest(BaseModel):
     role_id: str
 
 
+class SubscriptionNotificationRequest(BaseModel):
+    user_id: str
+    username: str
+    tier_name: str
+    price: float
+    currency: str
+    expires_at: str
+
+
 def verify_internal_secret(x_internal_secret: str | None = Header(default=None)) -> None:
     expected = get_settings().bot_internal_api_secret
     if not expected or not x_internal_secret or not hmac.compare_digest(x_internal_secret, expected):
@@ -78,5 +87,21 @@ def create_internal_api(discord_client: RoleManagerClient) -> FastAPI:
             logger.error("Role removal failed: %s", exc)
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
         return {"success": True, "data": {"assigned": False}, "error": None}
+
+    @app.post(
+        "/internal/notify/subscription-activated",
+        dependencies=[Depends(verify_internal_secret)],
+    )
+    async def notify_subscription_activated(payload: SubscriptionNotificationRequest) -> dict:
+        await _wait_until_ready()
+        sent = await discord_client.send_subscription_notification(
+            user_id=payload.user_id,
+            username=payload.username,
+            tier_name=payload.tier_name,
+            price=payload.price,
+            currency=payload.currency,
+            expires_at=payload.expires_at,
+        )
+        return {"success": True, "data": {"sent": sent}, "error": None}
 
     return app

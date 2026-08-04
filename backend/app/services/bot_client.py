@@ -45,3 +45,43 @@ async def remove_role(guild_id: str, discord_user_id: str, role_id: str) -> None
         "Requesting role removal: guild=%s user=%s role=%s", guild_id, discord_user_id, role_id
     )
     await _call_role_endpoint("/internal/roles/remove", guild_id, discord_user_id, role_id)
+
+
+async def notify_subscription_activated(
+    *,
+    discord_user_id: str,
+    username: str,
+    tier_name: str,
+    price: float,
+    currency: str,
+    expires_at: str,
+) -> None:
+    """Ask the bot to post a subscription-activated embed to its log channel.
+
+    Best-effort: a notification failure must never block subscription activation
+    (the role has already been granted by the time this is called), so any error
+    is logged and swallowed rather than raised.
+    """
+    settings = get_settings()
+    url = f"{settings.bot_internal_api_url}/internal/notify/subscription-activated"
+    headers = {INTERNAL_SECRET_HEADER: settings.bot_internal_api_secret}
+    payload = {
+        "user_id": discord_user_id,
+        "username": username,
+        "tier_name": tier_name,
+        "price": price,
+        "currency": currency,
+        "expires_at": expires_at,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(url, json=payload, headers=headers)
+        if response.status_code != 200:
+            logger.warning(
+                "Bot internal API returned %s for subscription notification: %s",
+                response.status_code,
+                response.text,
+            )
+    except httpx.RequestError as exc:
+        logger.warning("Could not reach bot internal API at %s: %s", url, exc)

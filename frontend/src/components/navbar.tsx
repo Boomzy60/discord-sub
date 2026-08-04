@@ -8,10 +8,7 @@ export function Navbar({ user }: { user: User | null }) {
   return (
     <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-10">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link
-          href="/"
-          className="bg-gradient-to-r from-primary to-accent bg-clip-text text-lg font-bold text-transparent"
-        >
+        <Link href="/" className="text-lg font-bold text-primary">
           Discord Subs
         </Link>
         <nav className="flex items-center gap-6 text-sm font-medium">

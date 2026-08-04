@@ -53,11 +53,15 @@ export function TierCard({
       </CardContent>
       <CardFooter>
         {isLoggedIn ? (
-          <Button render={<Link href={`/checkout?tier=${tier.id}`} />} className="w-full">
+          <Button
+            render={<Link href={`/checkout?tier=${tier.id}`} />}
+            nativeButton={false}
+            className="w-full"
+          >
             Subscribe
           </Button>
         ) : (
-          <Button render={<a href={discordLoginUrl()} />} className="w-full">
+          <Button render={<a href={discordLoginUrl()} />} nativeButton={false} className="w-full">
             Subscribe
           </Button>
         )}

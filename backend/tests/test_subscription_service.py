@@ -121,6 +121,9 @@ async def test_activate_subscription_marks_paid_and_assigns_role(db_session):
     route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
         return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
     )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
+    )
 
     subscription = await activate_subscription(db_session, payment)
     await db_session.commit()
@@ -133,6 +136,52 @@ async def test_activate_subscription_marks_paid_and_assigns_role(db_session):
     assert payment.paid_at is not None
     assert subscription.status == SubscriptionStatus.ACTIVE
     assert subscription.expires_at > datetime.now(timezone.utc)
+
+
+@respx.mock
+async def test_activate_subscription_sends_notification_with_tier_and_member_details(db_session):
+    settings = get_settings()
+    guild, tier, user = await _seed_guild_tier_user(db_session)
+    provider = FakeProvider()
+    payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+
+    respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
+        return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+    notify_route = respx.post(
+        f"{settings.bot_internal_api_url}/internal/notify/subscription-activated"
+    ).mock(return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None}))
+
+    subscription = await activate_subscription(db_session, payment)
+
+    assert notify_route.called
+    request_body = json.loads(notify_route.calls.last.request.content)
+    assert request_body["user_id"] == "222"
+    assert request_body["username"] == "tester"
+    assert request_body["tier_name"] == "Gold"
+    assert request_body["price"] == 10.0
+    assert request_body["currency"] == "USD"
+    assert request_body["expires_at"] == subscription.expires_at.isoformat()
+
+
+@respx.mock
+async def test_activate_subscription_succeeds_when_notification_endpoint_is_unreachable(db_session):
+    settings = get_settings()
+    guild, tier, user = await _seed_guild_tier_user(db_session)
+    provider = FakeProvider()
+    payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+
+    respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
+        return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(500, json={"success": False, "data": None, "error": "boom"})
+    )
+
+    subscription = await activate_subscription(db_session, payment)
+
+    assert subscription.status == SubscriptionStatus.ACTIVE
+    assert payment.status == PaymentStatus.PAID
 
 
 async def test_activate_subscription_raises_without_linked_subscription(db_session):
@@ -174,6 +223,9 @@ async def test_process_webhook_full_flow_activates_and_assigns_role(db_session):
     route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
         return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
     )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
+    )
 
     webhook_row = await process_webhook(db_session, webhook_provider, {}, b"{}")
 
@@ -203,6 +255,9 @@ async def test_process_webhook_is_idempotent_for_repeated_events(db_session):
 
     route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
         return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
     )
 
     await process_webhook(db_session, webhook_provider, {}, b"{}")
@@ -234,6 +289,9 @@ async def test_activate_subscription_rejects_terminal_payment_status(db_session)
 
     route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
         return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
     )
 
     try:
@@ -270,6 +328,9 @@ async def test_activate_subscription_raises_when_tier_has_no_role_mapping(db_ses
     route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
         return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
     )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
+    )
 
     try:
         await activate_subscription(db_session, payment)
@@ -291,6 +352,9 @@ async def test_activate_subscription_renewal_extends_from_current_expiry(db_sess
 
     respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
         return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
     )
 
     first_subscription = await activate_subscription(db_session, first_payment)

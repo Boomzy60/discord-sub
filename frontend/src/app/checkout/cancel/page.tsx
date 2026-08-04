@@ -11,7 +11,7 @@ export default function CheckoutCancelPage() {
       <p className="mt-3 text-muted-foreground">
         No payment was made. You can pick a plan again whenever you&apos;re ready.
       </p>
-      <Button render={<Link href="/pricing" />} className="mt-6">
+      <Button render={<Link href="/pricing" />} nativeButton={false} className="mt-6">
         Back to pricing
       </Button>
     </div>

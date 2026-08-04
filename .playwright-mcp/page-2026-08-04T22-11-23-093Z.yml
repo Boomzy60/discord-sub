@@ -1,0 +1,56 @@
+- generic [active] [ref=f15e1]:
+  - banner [ref=f15e2]:
+    - generic [ref=f15e3]:
+      - link "Discord Subs" [ref=f15e4] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=f15e5]:
+        - link "Pricing" [ref=f15e6] [cursor=pointer]:
+          - /url: /pricing
+        - button "Login with Discord" [ref=f15e7] [cursor=pointer]
+  - main [ref=f15e8]:
+    - generic [ref=f15e9]:
+      - generic [ref=f15e10]:
+        - heading "Choose your plan" [level=1] [ref=f15e11]
+        - paragraph [ref=f15e12]: Unlock premium roles in our Discord community.
+      - generic [ref=f15e13]:
+        - generic [ref=f15e14]:
+          - generic [ref=f15e15]:
+            - generic [ref=f15e16]: Bronze
+            - generic [ref=f15e17]:
+              - generic [ref=f15e18]: $4.99
+              - text: / month
+          - list [ref=f15e20]:
+            - listitem [ref=f15e21]:
+              - generic [ref=f15e24]: Access to the community lounge
+            - listitem [ref=f15e25]:
+              - generic [ref=f15e28]: Monthly community Q&A
+          - button "Subscribe" [ref=f15e30] [cursor=pointer]
+        - generic [ref=f15e31]:
+          - generic [ref=f15e32]:
+            - generic [ref=f15e33]: Most Popular
+            - generic [ref=f15e34]: Silver
+            - generic [ref=f15e35]:
+              - generic [ref=f15e36]: $9.99
+              - text: / month
+          - list [ref=f15e38]:
+            - listitem [ref=f15e39]:
+              - generic [ref=f15e42]: Everything in Bronze
+            - listitem [ref=f15e43]:
+              - generic [ref=f15e46]: Exclusive Silver-only channels
+            - listitem [ref=f15e47]:
+              - generic [ref=f15e50]: Priority support
+          - button "Subscribe" [ref=f15e52] [cursor=pointer]
+        - generic [ref=f15e53]:
+          - generic [ref=f15e54]:
+            - generic [ref=f15e55]: Gold
+            - generic [ref=f15e56]:
+              - generic [ref=f15e57]: $19.99
+              - text: / month
+          - list [ref=f15e59]:
+            - listitem [ref=f15e60]:
+              - generic [ref=f15e63]: Everything in Silver
+            - listitem [ref=f15e64]:
+              - generic [ref=f15e67]: VIP badge and colored name
+            - listitem [ref=f15e68]:
+              - generic [ref=f15e71]: 1-on-1 support access
+          - button "Subscribe" [ref=f15e73] [cursor=pointer]

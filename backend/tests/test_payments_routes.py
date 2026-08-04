@@ -101,6 +101,9 @@ async def test_paypal_webhook_activates_subscription_and_assigns_role(client, db
     role_route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
         return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
     )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
+    )
 
     webhook_payload = {
         "id": "evt-1",
@@ -215,6 +218,9 @@ async def test_nowpayments_webhook_activates_subscription_and_assigns_role(clien
 
     role_route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
         return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
     )
 
     webhook_response = await client.post(

@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     discord_guild_id: str = ""
     discord_bot_token: str = ""
 
+    discord_role_id_tier_1: str = ""
+    discord_role_id_tier_2: str = ""
+    discord_role_id_tier_3: str = ""
+
     bot_internal_api_url: str = "http://localhost:8001"
     bot_internal_api_secret: str = ""
 
