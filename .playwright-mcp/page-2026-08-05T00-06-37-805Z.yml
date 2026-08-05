@@ -1,0 +1,27 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Discord Subs" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=e5]:
+        - link "Pricing" [ref=e6] [cursor=pointer]:
+          - /url: /pricing
+        - button "Login with Discord" [ref=e7] [cursor=pointer]
+  - main [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - heading "Unlock premium roles in our Discord community" [level=1] [ref=e11]
+        - paragraph [ref=e12]: Subscribe in a few clicks and get your Discord role automatically.
+        - generic [ref=e13]:
+          - button "View plans" [ref=e14] [cursor=pointer]
+          - button "Login with Discord" [ref=e15] [cursor=pointer]
+      - generic [ref=e16]:
+        - generic [ref=e18]:
+          - heading "Login with Discord" [level=2] [ref=e23]
+          - paragraph [ref=e24]: Sign in with your Discord account.
+        - generic [ref=e26]:
+          - heading "Choose your plan" [level=2] [ref=e31]
+          - paragraph [ref=e32]: Pick the tier that fits you. Pay monthly with PayPal or crypto.
+        - generic [ref=e34]:
+          - heading "Get instant access" [level=2] [ref=e39]
+          - paragraph [ref=e40]: Your role is granted automatically the moment payment clears.

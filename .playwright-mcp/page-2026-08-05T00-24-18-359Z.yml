@@ -1,0 +1,19 @@
+- generic [ref=f6e1]:
+  - banner [ref=f6e2]:
+    - generic [ref=f6e3]:
+      - link "Discord Subs" [ref=f6e4] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=f6e5]:
+        - link "Pricing" [ref=f6e6] [cursor=pointer]:
+          - /url: /pricing
+        - button "Uriel Uriel" [active] [ref=f6e44]:
+          - img "Uriel" [ref=f6e45]
+          - generic [ref=f6e10]: Uriel
+  - main [ref=f6e11]:
+    - generic [ref=f6e60]:
+      - img "Uriel" [ref=f6e62]
+      - generic [ref=f6e63]:
+        - heading "Welcome back, Uriel" [level=1] [ref=f6e64]
+        - paragraph [ref=f6e65]: You're signed in with Discord. Pick a plan to unlock your role.
+      - button "View plans" [ref=f6e66] [cursor=pointer]
+  - alert [ref=f6e57]: Welcome back, Uriel

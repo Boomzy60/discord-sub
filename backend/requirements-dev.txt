@@ -3,3 +3,9 @@ pytest==8.3.4
 pytest-asyncio==0.25.0
 aiosqlite==0.20.0
 respx==0.22.0
+
+# Makes outbound HTTPS calls (e.g. Discord OAuth token exchange) trust the OS
+# certificate store. Needed on Windows dev machines where antivirus/proxy
+# software (e.g. Avast) injects its own root CA that certifi doesn't know
+# about. Harmless elsewhere.
+pip-system-certs==5.3

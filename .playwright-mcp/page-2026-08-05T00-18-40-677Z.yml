@@ -1,0 +1,34 @@
+- generic [ref=f5e1]:
+  - banner [ref=f5e2]:
+    - generic [ref=f5e3]:
+      - link "Discord Subs" [ref=f5e4] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=f5e5]:
+        - link "Pricing" [ref=f5e6] [cursor=pointer]:
+          - /url: /pricing
+        - button "Uriel Uriel" [expanded] [ref=f5e7]:
+          - img "Uriel" [ref=f5e9]
+          - generic [ref=f5e10]: Uriel
+        - menu "Uriel Uriel" [active] [ref=f5e48]:
+          - group "Uriel" [ref=f5e49]
+          - separator [ref=f5e50]
+          - menuitem "Dashboard" [ref=f5e51]
+          - separator [ref=f5e52]
+          - menuitem "Log out" [ref=f5e53]
+  - main [ref=f5e11]:
+    - generic [ref=f5e12]:
+      - generic [ref=f5e13]:
+        - heading "Unlock premium roles in our Discord community" [level=1] [ref=f5e14]
+        - paragraph [ref=f5e15]: Subscribe in a few clicks and get your Discord role automatically.
+        - button "View plans" [ref=f5e17] [cursor=pointer]
+      - generic [ref=f5e18]:
+        - generic [ref=f5e20]:
+          - heading "Login with Discord" [level=2] [ref=f5e25]
+          - paragraph [ref=f5e26]: Sign in with your Discord account.
+        - generic [ref=f5e28]:
+          - heading "Choose your plan" [level=2] [ref=f5e33]
+          - paragraph [ref=f5e34]: Pick the tier that fits you. Pay monthly with PayPal or crypto.
+        - generic [ref=f5e36]:
+          - heading "Get instant access" [level=2] [ref=f5e41]
+          - paragraph [ref=f5e42]: Your role is granted automatically the moment payment clears.
+  - alert [ref=f5e43]

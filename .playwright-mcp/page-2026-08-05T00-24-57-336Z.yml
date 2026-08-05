@@ -1,0 +1,28 @@
+- generic [active] [ref=f6e1]:
+  - banner [ref=f6e2]:
+    - generic [ref=f6e3]:
+      - link "Discord Subs" [ref=f6e4] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=f6e5]:
+        - link "Pricing" [ref=f6e6] [cursor=pointer]:
+          - /url: /pricing
+        - button "Uriel Uriel" [ref=f6e44]:
+          - img "Uriel" [ref=f6e45]
+          - generic [ref=f6e10]: Uriel
+  - main [ref=f6e11]:
+    - generic [ref=f6e132]:
+      - heading "Checkout" [level=1] [ref=f6e133]
+      - generic [ref=f6e134]:
+        - generic [ref=f6e135]: Silver
+        - generic [ref=f6e136]: $9.99 / month
+      - paragraph [ref=f6e137]: Choose how you'd like to pay.
+      - generic [ref=f6e139]:
+        - generic [ref=f6e140]:
+          - button "PayPal Pay with your PayPal balance or card" [ref=f6e141]:
+            - generic [ref=f6e142]: PayPal
+            - generic [ref=f6e143]: Pay with your PayPal balance or card
+          - button "Crypto Pay with Bitcoin, Ethereum, and more" [ref=f6e144]:
+            - generic [ref=f6e145]: Crypto
+            - generic [ref=f6e146]: Pay with Bitcoin, Ethereum, and more
+        - button "Pay with PayPal" [ref=f6e147]
+  - alert [ref=f6e57]: Checkout
