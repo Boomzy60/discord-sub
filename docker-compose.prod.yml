@@ -1,0 +1,53 @@
+# Production overrides. Use together with the base file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Differences from local dev:
+# - no bind mounts (containers run the code baked into the image at build time)
+# - no dev servers (--reload / next dev) — backend runs plain uvicorn, frontend
+#   runs a production `next build` + `next start`
+# - app ports are not published to the host; only Caddy (80/443) is public
+# - Caddy terminates TLS and reverse-proxies to the frontend and backend
+# - all services restart automatically unless explicitly stopped
+
+services:
+  backend:
+    volumes: []
+    ports: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    restart: unless-stopped
+
+  bot:
+    volumes: []
+    ports: []
+    restart: unless-stopped
+
+  frontend:
+    volumes: []
+    ports: []
+    # NEXT_PUBLIC_* vars must be set at build time. Building here (instead of in the
+    # Dockerfile) means the values from env_file are available when the build runs.
+    command: sh -c "npm run build && npm run start -- --hostname 0.0.0.0 --port 3000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    networks:
+      - app-network
+
+volumes:
+  caddy_data:
+  caddy_config:
