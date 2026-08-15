@@ -85,6 +85,7 @@ Edit `.env` with production values. Compared to your local `.env`, change at lea
 | `NEXT_PUBLIC_API_BASE_URL` | `https://api.kiyomistudio.com` |
 | `DISCORD_REDIRECT_URI` | `https://api.kiyomistudio.com/auth/discord/callback` |
 | `JWT_SECRET` | a new long random value (`openssl rand -hex 32`) — never reuse the dev one |
+| `SESSION_COOKIE_DOMAIN` | `.kiyomistudio.com` — required since frontend and backend are on different subdomains |
 | `PAYPAL_MODE` | `sandbox` for the first deploy (switch to `live` once everything's verified — see step 5) |
 | `NOWPAYMENTS_API_KEY` / `NOWPAYMENTS_IPN_SECRET` | sandbox values for the first deploy, live ones once verified |
 | `DISCORD_*` (client id/secret, guild id, role ids, bot token) | your production Discord app/server values — see the migration doc |

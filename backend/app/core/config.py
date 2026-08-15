@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     jwt_secret: str = "insecure-dev-secret-change-me"
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = 10080
+    # Set in production when the frontend and backend live on different subdomains of the
+    # same domain (e.g. ".kiyomistudio.com"), so the session cookie set by the backend is
+    # also sent on requests to the frontend's server. Leave blank for single-host dev setups.
+    session_cookie_domain: str = ""
 
     discord_client_id: str = ""
     discord_client_secret: str = ""

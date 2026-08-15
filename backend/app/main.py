@@ -24,7 +24,7 @@ from app.core.logging import configure_logging
 configure_logging()
 settings = get_settings()
 
-app = FastAPI(title="Discord Subscription Platform API")
+app = FastAPI(title="Kiyomi Studios API")
 
 app.add_middleware(
     CORSMiddleware,

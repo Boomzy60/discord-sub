@@ -98,13 +98,14 @@ async def discord_callback(
         secure=_COOKIE_SECURE,
         samesite="lax",
         max_age=settings.jwt_expires_minutes * 60,
+        domain=settings.session_cookie_domain or None,
     )
     return response
 
 
 @router.post("/auth/logout")
 async def logout(response: Response) -> dict:
-    response.delete_cookie(SESSION_COOKIE_NAME)
+    response.delete_cookie(SESSION_COOKIE_NAME, domain=settings.session_cookie_domain or None)
     return {"success": True, "data": None, "error": None}
 
 

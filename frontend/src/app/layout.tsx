@@ -5,7 +5,7 @@ import { Navbar } from "@/components/navbar";
 import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Discord Subscriptions",
+  title: "Kiyomi Studios",
   description: "Subscribe to unlock premium roles in our Discord community.",
 };
 
