@@ -2,10 +2,13 @@ import asyncio
 import logging
 
 import discord
+import httpx
 
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+INTERNAL_SECRET_HEADER = "X-Internal-Secret"
 
 
 class RoleManagerError(Exception):
@@ -24,6 +27,35 @@ class RoleNotFoundError(RoleManagerError):
     """Raised when the target role does not exist in the guild."""
 
 
+class BackendClientError(Exception):
+    """Raised when the backend's internal API cannot be reached or returns an error."""
+
+
+async def fetch_active_role_ids(guild_id: str, user_id: str) -> list[str]:
+    """Ask the backend which role ids `user_id` should currently hold in `guild_id`.
+
+    Used on member join to catch up members who subscribed before joining the
+    server, since `assign_role` had no member to grant the role to at the time.
+    """
+    settings = get_settings()
+    url = f"{settings.backend_base_url}/internal/subscriptions/active-roles"
+    headers = {INTERNAL_SECRET_HEADER: settings.bot_internal_api_secret}
+    params = {"discord_user_id": user_id, "guild_id": guild_id}
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, params=params, headers=headers)
+    except httpx.RequestError as exc:
+        raise BackendClientError(f"Could not reach backend at {url}: {exc}") from exc
+
+    if response.status_code != 200:
+        raise BackendClientError(
+            f"Backend returned {response.status_code} for active-roles: {response.text}"
+        )
+
+    return response.json()["data"]["role_ids"]
+
+
 class RoleManagerClient(discord.Client):
     """Discord client that performs role assignment/removal for the backend.
 
@@ -38,6 +70,25 @@ class RoleManagerClient(discord.Client):
     async def on_ready(self) -> None:
         logger.info("Discord bot connected as %s (guilds: %d)", self.user, len(self.guilds))
         self.ready_event.set()
+
+    async def on_member_join(self, member: discord.Member) -> None:
+        """Grant any roles `member` already earned by subscribing before joining."""
+        guild_id = str(member.guild.id)
+        user_id = str(member.id)
+
+        try:
+            role_ids = await fetch_active_role_ids(guild_id, user_id)
+        except BackendClientError as exc:
+            logger.warning("Could not check active subscriptions for new member %s: %s", user_id, exc)
+            return
+
+        for role_id in role_ids:
+            try:
+                await self.assign_role(guild_id, user_id, role_id)
+            except RoleManagerError as exc:
+                logger.warning(
+                    "Failed to retroactively assign role %s to member %s: %s", role_id, user_id, exc
+                )
 
     async def _resolve_guild(self, guild_id: str) -> discord.Guild:
         guild = self.get_guild(int(guild_id))

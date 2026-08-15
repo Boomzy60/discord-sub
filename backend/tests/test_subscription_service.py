@@ -184,6 +184,27 @@ async def test_activate_subscription_succeeds_when_notification_endpoint_is_unre
     assert payment.status == PaymentStatus.PAID
 
 
+@respx.mock
+async def test_activate_subscription_still_activates_when_role_assignment_fails(db_session):
+    settings = get_settings()
+    guild, tier, user = await _seed_guild_tier_user(db_session)
+    provider = FakeProvider()
+    payment, _ = await start_checkout(db_session, user=user, tier=tier, provider=provider)
+
+    respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
+        return_value=Response(404, json={"success": False, "data": None, "error": "Member not found"})
+    )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
+    )
+
+    subscription = await activate_subscription(db_session, payment)
+
+    assert subscription.status == SubscriptionStatus.ACTIVE
+    assert payment.status == PaymentStatus.PAID
+    assert payment.paid_at is not None
+
+
 async def test_activate_subscription_raises_without_linked_subscription(db_session):
     payment = Payment(
         user_id="00000000-0000-0000-0000-000000000000",

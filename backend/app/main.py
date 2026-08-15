@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import (
     auth,
     health,
+    internal,
     payments_crypto,
     payments_paypal,
     tiers,
@@ -43,3 +44,4 @@ app.include_router(payments_paypal.router)
 app.include_router(payments_crypto.router)
 app.include_router(webhooks_paypal.router)
 app.include_router(webhooks_nowpayments.router)
+app.include_router(internal.router)

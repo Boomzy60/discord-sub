@@ -1,6 +1,7 @@
+import hmac
 import uuid
 
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,6 +34,12 @@ async def get_current_admin_user(user: User = Depends(get_current_user)) -> User
     if not user.is_admin:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required")
     return user
+
+
+async def verify_bot_internal_secret(x_internal_secret: str | None = Header(default=None)) -> None:
+    expected = get_settings().bot_internal_api_secret
+    if not expected or not x_internal_secret or not hmac.compare_digest(x_internal_secret, expected):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid internal API secret")
 
 
 async def get_active_guild(db: AsyncSession = Depends(get_db)) -> Guild:

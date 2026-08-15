@@ -14,9 +14,14 @@ export function Navbar({ user }: { user: User | null }) {
           <span className="sr-only">Kiyomi Studio</span>
         </Link>
         <nav className="flex items-center gap-6 text-sm font-medium">
-          <Link href="/pricing" className="text-muted-foreground hover:text-foreground">
-            Pricing
-          </Link>
+          <a
+            href={process.env.DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Join Server
+          </a>
           {user ? <UserMenu user={user} /> : <LoginButton />}
         </nav>
       </div>

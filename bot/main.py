@@ -22,6 +22,9 @@ async def main() -> None:
     )
 
     intents = discord.Intents.default()
+    # Privileged intent, required to receive on_member_join; must also be enabled under
+    # "Server Members Intent" on the Bot page of the Discord Developer Portal.
+    intents.members = True
     discord_client = RoleManagerClient(intents=intents)
 
     internal_api = create_internal_api(discord_client)

@@ -21,6 +21,8 @@ services:
       context: ./bot
     env_file:
       - .env
+    environment:
+      - BACKEND_BASE_URL=http://backend:8000
     ports:
       - "8001:8001"
     volumes:

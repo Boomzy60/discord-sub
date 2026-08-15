@@ -152,7 +152,15 @@ async def activate_subscription(db: AsyncSession, payment: Payment) -> Subscript
         payment.paid_at = now
         await db.flush()
 
-    await bot_client.assign_role(guild.guild_id, user.discord_id, mapping.discord_role_id)
+    try:
+        await bot_client.assign_role(guild.guild_id, user.discord_id, mapping.discord_role_id)
+    except bot_client.BotClientError as exc:
+        logger.warning(
+            "Role assignment failed for user %s in guild %s (will retry on member join): %s",
+            user.discord_id,
+            guild.guild_id,
+            exc,
+        )
 
     await bot_client.notify_subscription_activated(
         discord_user_id=user.discord_id,
@@ -164,6 +172,31 @@ async def activate_subscription(db: AsyncSession, payment: Payment) -> Subscript
     )
 
     return subscription
+
+
+async def get_active_role_ids_for_member(
+    db: AsyncSession, *, discord_user_id: str, guild_id: str
+) -> list[str]:
+    """Return the Discord role ids `discord_user_id` should hold in `guild_id` right now.
+
+    Used by the bot's member-join handler to grant roles retroactively for members
+    who paid before joining the server (so `assign_role` had no member to grant to yet).
+    """
+    now = datetime.now(timezone.utc)
+    result = await db.execute(
+        select(TierRoleMapping.discord_role_id)
+        .join(SubscriptionTier, SubscriptionTier.id == TierRoleMapping.tier_id)
+        .join(Guild, Guild.id == TierRoleMapping.guild_id)
+        .join(Subscription, Subscription.tier_id == SubscriptionTier.id)
+        .join(User, User.id == Subscription.user_id)
+        .where(
+            User.discord_id == discord_user_id,
+            Guild.guild_id == guild_id,
+            Subscription.status == SubscriptionStatus.ACTIVE,
+            Subscription.expires_at > now,
+        )
+    )
+    return [role_id for (role_id,) in result.all()]
 
 
 async def record_and_apply_webhook_event(
