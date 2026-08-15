@@ -15,7 +15,7 @@ export async function getTiers(): Promise<Tier[]> {
   const response = await fetch(`${API_BASE_URL}/tiers`, { cache: "no-store" });
 
   if (!response.ok) {
-    return [];
+    throw new Error(`Failed to load plans (status ${response.status})`);
   }
 
   const body = (await response.json()) as ApiEnvelope<Tier[]>;

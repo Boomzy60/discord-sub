@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,14 +21,23 @@ import type { User } from "@/lib/types";
 export function UserMenu({ user }: { user: User }) {
   const router = useRouter();
   const displayName = discordDisplayName(user);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   async function handleLogout() {
-    await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-    router.push("/");
-    router.refresh();
+    setLoggingOut(true);
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      // Best-effort: even if the network call fails, still navigate the user
+      // away from any authed view — the cookie will simply expire on its own.
+      console.error("logout: failed to reach backend", err);
+    } finally {
+      router.push("/");
+      router.refresh();
+    }
   }
 
   return (
@@ -50,8 +60,8 @@ export function UserMenu({ user }: { user: User }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/dashboard")}>Dashboard</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={handleLogout}>
-          Log out
+        <DropdownMenuItem variant="destructive" disabled={loggingOut} onClick={handleLogout}>
+          {loggingOut ? "Logging out…" : "Log out"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

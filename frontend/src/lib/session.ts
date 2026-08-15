@@ -12,15 +12,23 @@ export async function getCurrentUser(): Promise<User | null> {
     return null;
   }
 
-  const response = await fetch(`${API_BASE_URL}/users/me`, {
-    headers: { Cookie: `session=${session.value}` },
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/me`, {
+      headers: { Cookie: `session=${session.value}` },
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return null;
+    }
+
+    const body = (await response.json()) as ApiEnvelope<User>;
+    return body.data;
+  } catch (err) {
+    // Backend unreachable — fail open to "logged out" instead of crashing every
+    // page (auth state is checked on every layout render), but log it so a
+    // real outage is visible in the container logs rather than silently hidden.
+    console.error("getCurrentUser: failed to reach backend", err);
     return null;
   }
-
-  const body = (await response.json()) as ApiEnvelope<User>;
-  return body.data;
 }
