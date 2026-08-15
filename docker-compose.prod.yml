@@ -12,19 +12,19 @@
 
 services:
   backend:
-    volumes: []
-    ports: []
+    volumes: !reset []
+    ports: !reset []
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
     restart: unless-stopped
 
   bot:
-    volumes: []
-    ports: []
+    volumes: !reset []
+    ports: !reset []
     restart: unless-stopped
 
   frontend:
-    volumes: []
-    ports: []
+    volumes: !reset []
+    ports: !reset []
     # NEXT_PUBLIC_* vars must be set at build time. Building here (instead of in the
     # Dockerfile) means the values from env_file are available when the build runs.
     command: sh -c "npm run build && npm run start -- --hostname 0.0.0.0 --port 3000"
