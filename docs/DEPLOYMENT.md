@@ -1,3 +1,4 @@
+
 # Production Deployment
 
 Step-by-step guide to putting the stack live on a real domain, written for a first deploy.
@@ -58,7 +59,7 @@ changing who answers DNS queries for the domain).
    | A    | @    | YOUR_VPS_IP   |
    | A    | api  | YOUR_VPS_IP   |
 
-   `yourdomain.com` will serve the website, `api.yourdomain.com` will serve the backend.
+   `kiyomistudio.com` will serve the website, `api.kiyomistudio.com` will serve the backend.
 
 > **Why "DNS only" and not Cloudflare's orange-cloud proxy?** Caddy (step 5) issues its
 > own free HTTPS certificates automatically, which requires it to see real visitor
@@ -69,7 +70,7 @@ changing who answers DNS queries for the domain).
 ## 4. Get the code onto the VPS
 
 ```bash
-git clone <your-repo-url> discord-sub
+git clone https://github.com/Boomzy60/discord-sub discord-sub
 cd discord-sub
 cp .env.example .env
 ```
@@ -79,27 +80,25 @@ Edit `.env` with production values. Compared to your local `.env`, change at lea
 | Variable | Production value |
 |---|---|
 | `ENVIRONMENT` | `production` |
-| `BACKEND_BASE_URL` | `https://api.yourdomain.com` |
-| `FRONTEND_BASE_URL` | `https://yourdomain.com` |
-| `NEXT_PUBLIC_API_BASE_URL` | `https://api.yourdomain.com` |
-| `DISCORD_REDIRECT_URI` | `https://api.yourdomain.com/auth/discord/callback` |
+| `BACKEND_BASE_URL` | `https://api.kiyomistudio.com` |
+| `FRONTEND_BASE_URL` | `https://kiyomistudio.com` |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://api.kiyomistudio.com` |
+| `DISCORD_REDIRECT_URI` | `https://api.kiyomistudio.com/auth/discord/callback` |
 | `JWT_SECRET` | a new long random value (`openssl rand -hex 32`) — never reuse the dev one |
-| `PAYPAL_MODE` | `live` |
-| `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` / `PAYPAL_WEBHOOK_ID` | from a **live** PayPal REST app, not sandbox |
-| `NOWPAYMENTS_API_KEY` / `NOWPAYMENTS_IPN_SECRET` | from your live NOWPayments dashboard |
+| `PAYPAL_MODE` | `sandbox` for the first deploy (switch to `live` once everything's verified — see step 5) |
+| `NOWPAYMENTS_API_KEY` / `NOWPAYMENTS_IPN_SECRET` | sandbox values for the first deploy, live ones once verified |
 | `DISCORD_*` (client id/secret, guild id, role ids, bot token) | your production Discord app/server values — see the migration doc |
 
-Also update the two domains in the `Caddyfile` (`yourdomain.com`, `api.yourdomain.com`)
-and the `email` field at the top, then commit or just edit directly on the VPS.
+The `Caddyfile` already has `kiyomistudio.com` / `api.kiyomistudio.com` filled in.
 
 ## 5. Set up live payment credentials
 
 - **PayPal**: in the [PayPal Developer Dashboard](https://developer.paypal.com), create
   (or switch to) a **Live** app to get a live client ID/secret. Under your live app's
-  webhooks, add `https://api.yourdomain.com/webhooks/paypal` subscribed to the payment
+  webhooks, add `https://api.kiyomistudio.com/webhooks/paypal` subscribed to the payment
   capture events, and copy the resulting Webhook ID into `PAYPAL_WEBHOOK_ID`.
 - **NOWPayments**: in your NOWPayments dashboard, switch out of sandbox, copy your live
-  API key, and set your IPN callback URL to `https://api.yourdomain.com/webhooks/nowpayments`.
+  API key, and set your IPN callback URL to `https://api.kiyomistudio.com/webhooks/nowpayments`.
   Copy the IPN secret into `NOWPAYMENTS_IPN_SECRET`.
 
 ## 6. Deploy
@@ -117,7 +116,7 @@ docker compose logs -f caddy
 docker compose ps
 ```
 
-Once `caddy` logs show certificates obtained, visit `https://yourdomain.com` — you
+Once `caddy` logs show certificates obtained, visit `https://kiyomistudio.com` — you
 should see the site over HTTPS with a valid padlock.
 
 ## 7. Redeploying after future code changes
@@ -133,11 +132,11 @@ without manual intervention.
 ## Troubleshooting
 
 - **Caddy can't get a certificate**: DNS hasn't propagated yet, or port 80/443 is
-  blocked. Confirm `dig yourdomain.com` resolves to your VPS IP, and that `ufw status`
+  blocked. Confirm `dig kiyomistudio.com` resolves to your VPS IP, and that `ufw status`
   shows 80/443 allowed.
 - **Login redirects fail / CORS errors in the browser console**: double-check
   `DISCORD_REDIRECT_URI`, `FRONTEND_BASE_URL`, and `NEXT_PUBLIC_API_BASE_URL` all use
   `https://` and the correct domain — a mismatch here is the most common cause.
 - **Webhook not activating subscriptions**: check `docker compose logs backend` for
   signature verification failures, and confirm the webhook URLs configured in the PayPal/
-  NOWPayments dashboards exactly match `https://api.yourdomain.com/webhooks/...`.
+  NOWPayments dashboards exactly match `https://api.kiyomistudio.com/webhooks/...`.

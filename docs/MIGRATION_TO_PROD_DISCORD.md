@@ -18,7 +18,7 @@ Either way, in the application's **OAuth2 → General** settings, add the produc
 redirect URL:
 
 ```
-https://api.yourdomain.com/auth/discord/callback
+https://api.kiyomistudio.com/auth/discord/callback
 ```
 
 You can remove the old `http://localhost:8000/...` redirect once production is confirmed
@@ -51,7 +51,7 @@ On the VPS, edit `.env`:
 | Variable | Set to |
 |---|---|
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | from step 1 |
-| `DISCORD_REDIRECT_URI` | `https://api.yourdomain.com/auth/discord/callback` |
+| `DISCORD_REDIRECT_URI` | `https://api.kiyomistudio.com/auth/discord/callback` |
 | `DISCORD_BOT_TOKEN` | the bot token for the application from step 1 |
 | `DISCORD_GUILD_ID` | the client's real server ID |
 | `DISCORD_ROLE_ID_TIER_1` / `_TIER_2` / `_TIER_3` | the role IDs from step 3 |
