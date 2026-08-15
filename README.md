@@ -1,4 +1,4 @@
-# Kiyomi Studios
+# Kiyomi Studio
 
 Production subscription platform for Discord communities: Discord OAuth login, three monthly
 subscription tiers, PayPal and NOWPayments (crypto) payment, automatic role grant/revoke tied to
