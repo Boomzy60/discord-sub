@@ -1,5 +1,6 @@
 """NOWPayments crypto invoice + IPN integration."""
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -22,6 +23,28 @@ _STATUS_MAP = {
     "failed": PaymentStatus.FAILED,
     "expired": PaymentStatus.EXPIRED,
     "refunded": PaymentStatus.REFUNDED,
+}
+
+# NOWPayments enforces its own per-currency minimum payment amount (commonly $10+ in USD
+# terms regardless of coin, since it covers their processing fee, not just network fees).
+# A candidate currency is only worth offering if a tier's price can actually clear that
+# minimum, so this is the curated set of well-known coins we check `min_amount` for and
+# present to the customer, rather than every currency enabled on the NOWPayments account.
+SUPPORTED_CURRENCIES: dict[str, str] = {
+    "btc": "Bitcoin (BTC)",
+    "eth": "Ethereum (ETH)",
+    "ltc": "Litecoin (LTC)",
+    "trx": "TRON (TRX)",
+    "usdttrc20": "USDT (TRC-20)",
+    "usdterc20": "USDT (ERC-20)",
+    "usdc": "USD Coin (USDC)",
+    "xrp": "XRP",
+    "doge": "Dogecoin (DOGE)",
+    "sol": "Solana (SOL)",
+    "bnbbsc": "BNB (BSC)",
+    "ton": "Toncoin (TON)",
+    "bch": "Bitcoin Cash (BCH)",
+    "ada": "Cardano (ADA)",
 }
 
 
@@ -49,8 +72,53 @@ class NOWPaymentsProvider(PaymentProvider):
         self._success_url = f"{settings.frontend_base_url}/checkout/success"
         self._cancel_url = f"{settings.frontend_base_url}/checkout/cancel"
 
+    async def get_available_currencies(
+        self, *, amount: float, currency: str
+    ) -> list[dict[str, str]]:
+        """Return the `SUPPORTED_CURRENCIES` whose NOWPayments minimum payment amount,
+        converted to `currency`, is at or below `amount`.
+
+        Presenting every NOWPayments-enabled currency regardless of the tier price leads
+        customers straight into a "not up to amount" rejection on NOWPayments' own page,
+        since most coins have a real-world minimum around $10+ in USD terms.
+        """
+        currency = currency.lower()
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            responses = await asyncio.gather(
+                *(
+                    client.get(
+                        f"{self._base_url}/min-amount",
+                        params={
+                            "currency_from": code,
+                            "currency_to": currency,
+                            "fiat_equivalent": currency,
+                        },
+                        headers={"x-api-key": self._api_key},
+                    )
+                    for code in SUPPORTED_CURRENCIES
+                ),
+                return_exceptions=True,
+            )
+
+        available: list[dict[str, str]] = []
+        for code, response in zip(SUPPORTED_CURRENCIES, responses):
+            if isinstance(response, Exception) or response.status_code != 200:
+                continue
+            min_fiat = response.json().get("fiat_equivalent")
+            if min_fiat is not None and min_fiat <= amount:
+                available.append({"code": code, "label": SUPPORTED_CURRENCIES[code]})
+
+        return available
+
     async def create_payment(
-        self, *, amount: float, currency: str, reference: str, description: str
+        self,
+        *,
+        amount: float,
+        currency: str,
+        reference: str,
+        description: str,
+        pay_currency: str | None = None,
     ) -> CreatedPayment:
         # NOWPayments IPNs always echo back our `order_id`, but not necessarily the
         # invoice `id`, so `reference` (order_id) is what we use to correlate later.
@@ -63,6 +131,10 @@ class NOWPaymentsProvider(PaymentProvider):
             "success_url": self._success_url,
             "cancel_url": self._cancel_url,
         }
+        if pay_currency:
+            # Locks the hosted invoice to this single currency so NOWPayments' own page
+            # can't offer a coin we already know won't clear its minimum for this amount.
+            invoice_payload["pay_currency"] = pay_currency
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(

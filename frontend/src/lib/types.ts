@@ -15,6 +15,11 @@ export interface ApiEnvelope<T> {
   error: unknown;
 }
 
+export interface CryptoCurrency {
+  code: string;
+  label: string;
+}
+
 export interface Tier {
   id: string;
   name: string;
