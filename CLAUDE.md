@@ -2,6 +2,8 @@
 
 # Discord Subscription Platform
 
+# flow
+edit, push to vps, restart service (when necessary)
 ## Objective
 
 Build a production-ready subscription platform for Discord communities.

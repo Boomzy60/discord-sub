@@ -1,5 +1,6 @@
 """Seed the three MVP subscription tiers for the active guild, and keep their
-Discord role mappings in sync with DISCORD_ROLE_ID_TIER_1/2/3. Safe to re-run.
+price, description, and Discord role mapping in sync with this file / the
+DISCORD_ROLE_ID_TIER_1/2/3 env vars. Safe to re-run.
 """
 
 import asyncio
@@ -22,22 +23,22 @@ def _seed_tiers() -> list[TierCreate]:
     return [
         TierCreate(
             name="Bronze",
-            description="Access to the community lounge\nMonthly community Q&A",
-            price=4.99,
+            description="1 Shiny regular pokemon/Month",
+            price=5.00,
             duration_days=30,
             discord_role_id=settings.discord_role_id_tier_1 or "000000000000000001",
         ),
         TierCreate(
             name="Silver",
-            description="Everything in Bronze\nExclusive Silver-only channels\nPriority support",
-            price=9.99,
+            description="1 Shiny Legendary or Mythical pokemon/Month",
+            price=10.00,
             duration_days=30,
             discord_role_id=settings.discord_role_id_tier_2 or "000000000000000002",
         ),
         TierCreate(
             name="Gold",
-            description="Everything in Silver\nVIP badge and colored name\n1-on-1 support access",
-            price=19.99,
+            description="2 Shiny Legendary or Mythical pokemon and 1 Shiny regular pokemon/Month",
+            price=20.00,
             duration_days=30,
             discord_role_id=settings.discord_role_id_tier_3 or "000000000000000003",
         ),
@@ -45,8 +46,8 @@ def _seed_tiers() -> list[TierCreate]:
 
 
 async def seed_tiers(db: AsyncSession) -> None:
-    """Create the three MVP tiers if missing, and sync each one's Discord role
-    from DISCORD_ROLE_ID_TIER_1/2/3 if it has since changed in the environment.
+    """Create the three MVP tiers if missing, and sync each existing tier's
+    price, description, and Discord role if they've since changed here.
     """
     guild = await get_active_guild(db=db)
     seed_data = _seed_tiers()
@@ -66,14 +67,21 @@ async def seed_tiers(db: AsyncSession) -> None:
             tier = await tier_service.create_tier(db, guild.id, data)
             tier.display_order = order
             created += 1
-        elif tier.role_mapping.discord_role_id != data.discord_role_id:
-            await tier_service.update_tier(
-                db, guild.id, tier.id, TierUpdate(discord_role_id=data.discord_role_id)
-            )
+            continue
+
+        changes = {}
+        if tier.role_mapping.discord_role_id != data.discord_role_id:
+            changes["discord_role_id"] = data.discord_role_id
+        if tier.price != data.price:
+            changes["price"] = data.price
+        if tier.description != data.description:
+            changes["description"] = data.description
+        if changes:
+            await tier_service.update_tier(db, guild.id, tier.id, TierUpdate(**changes))
             synced += 1
 
     await db.commit()
-    print(f"Seeded {created} new tier(s), synced {synced} role ID(s) from environment.")
+    print(f"Seeded {created} new tier(s), synced {synced} tier(s) from environment.")
 
 
 async def main() -> None:
