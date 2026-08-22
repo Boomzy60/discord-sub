@@ -3,6 +3,7 @@
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal
@@ -14,12 +15,31 @@ scheduler = AsyncIOScheduler()
 
 EXPIRE_SUBSCRIPTIONS_JOB_ID = "expire_subscriptions"
 
+# Arbitrary constant key for a Postgres advisory lock. Production runs the backend
+# with multiple uvicorn workers (see docker-compose.prod.yml), and each worker's
+# process has its own in-memory APScheduler, so every worker would otherwise run
+# this sweep on the same schedule. The lock lets only one worker's tick actually
+# do the work; the others no-op for that tick. Requires a session-scoped Postgres
+# connection (true for Supabase's session pooler) — a transaction-pooled
+# connection would not hold the lock across statements.
+EXPIRE_SUBSCRIPTIONS_LOCK_KEY = 872_364_501
+
 
 async def _run_expire_subscriptions_job() -> None:
     async with AsyncSessionLocal() as db:
-        expired_count = await expire_due_subscriptions(db)
-        if expired_count:
-            logger.info("Expired %d subscription(s)", expired_count)
+        acquired = (
+            await db.execute(text("SELECT pg_try_advisory_lock(:key)"), {"key": EXPIRE_SUBSCRIPTIONS_LOCK_KEY})
+        ).scalar()
+        if not acquired:
+            logger.debug("Another worker is already running the expiration sweep; skipping this tick")
+            return
+
+        try:
+            expired_count = await expire_due_subscriptions(db)
+            if expired_count:
+                logger.info("Expired %d subscription(s)", expired_count)
+        finally:
+            await db.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": EXPIRE_SUBSCRIPTIONS_LOCK_KEY})
 
 
 def start_scheduler() -> None:
