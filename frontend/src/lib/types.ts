@@ -32,3 +32,12 @@ export interface Tier {
   discord_role_id: string;
   created_at: string;
 }
+
+export interface Subscription {
+  id: string;
+  tier_name: string;
+  price: number;
+  currency: string;
+  status: string;
+  expires_at: string;
+}
