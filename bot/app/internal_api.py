@@ -34,6 +34,13 @@ class SubscriptionNotificationRequest(BaseModel):
     expires_at: str
 
 
+class SubscriptionExpiredNotificationRequest(BaseModel):
+    user_id: str
+    username: str
+    tier_name: str
+    expired_at: str
+
+
 def verify_internal_secret(x_internal_secret: str | None = Header(default=None)) -> None:
     expected = get_settings().bot_internal_api_secret
     if not expected or not x_internal_secret or not hmac.compare_digest(x_internal_secret, expected):
@@ -101,6 +108,20 @@ def create_internal_api(discord_client: RoleManagerClient) -> FastAPI:
             price=payload.price,
             currency=payload.currency,
             expires_at=payload.expires_at,
+        )
+        return {"success": True, "data": {"sent": sent}, "error": None}
+
+    @app.post(
+        "/internal/notify/subscription-expired",
+        dependencies=[Depends(verify_internal_secret)],
+    )
+    async def notify_subscription_expired(payload: SubscriptionExpiredNotificationRequest) -> dict:
+        await _wait_until_ready()
+        sent = await discord_client.send_subscription_expired_notification(
+            user_id=payload.user_id,
+            username=payload.username,
+            tier_name=payload.tier_name,
+            expired_at=payload.expired_at,
         )
         return {"success": True, "data": {"sent": sent}, "error": None}
 

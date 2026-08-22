@@ -192,3 +192,42 @@ class RoleManagerClient(discord.Client):
             return False
 
         return True
+
+    async def send_subscription_expired_notification(
+        self,
+        *,
+        user_id: str,
+        username: str,
+        tier_name: str,
+        expired_at: str,
+    ) -> bool:
+        """Post a small embed to the configured log channel when a subscription expires.
+
+        Best-effort: returns False (and logs) instead of raising, matching
+        `send_subscription_notification`'s failure handling.
+        """
+        channel_id = get_settings().discord_log_channel_id
+        if not channel_id:
+            logger.info("No log channel configured; skipping expiration notification")
+            return False
+
+        channel = self.get_channel(int(channel_id))
+        if channel is None:
+            try:
+                channel = await self.fetch_channel(int(channel_id))
+            except discord.HTTPException as exc:
+                logger.warning("Could not fetch log channel %s: %s", channel_id, exc)
+                return False
+
+        embed = discord.Embed(title="Subscription expired", color=discord.Color.red())
+        embed.add_field(name="Member", value=f"<@{user_id}> ({username})", inline=False)
+        embed.add_field(name="Tier", value=tier_name, inline=True)
+        embed.add_field(name="Expired", value=expired_at, inline=True)
+
+        try:
+            await channel.send(embed=embed)
+        except discord.HTTPException as exc:
+            logger.warning("Failed to send expiration notification to channel %s: %s", channel_id, exc)
+            return False
+
+        return True

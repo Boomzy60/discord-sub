@@ -85,3 +85,38 @@ async def notify_subscription_activated(
             )
     except httpx.RequestError as exc:
         logger.warning("Could not reach bot internal API at %s: %s", url, exc)
+
+
+async def notify_subscription_expired(
+    *,
+    discord_user_id: str,
+    username: str,
+    tier_name: str,
+    expired_at: str,
+) -> None:
+    """Ask the bot to post a subscription-expired embed to its log channel.
+
+    Best-effort: same failure handling as `notify_subscription_activated` — a
+    notification failure must never block subscription expiration.
+    """
+    settings = get_settings()
+    url = f"{settings.bot_internal_api_url}/internal/notify/subscription-expired"
+    headers = {INTERNAL_SECRET_HEADER: settings.bot_internal_api_secret}
+    payload = {
+        "user_id": discord_user_id,
+        "username": username,
+        "tier_name": tier_name,
+        "expired_at": expired_at,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(url, json=payload, headers=headers)
+        if response.status_code != 200:
+            logger.warning(
+                "Bot internal API returned %s for expiration notification: %s",
+                response.status_code,
+                response.text,
+            )
+    except httpx.RequestError as exc:
+        logger.warning("Could not reach bot internal API at %s: %s", url, exc)

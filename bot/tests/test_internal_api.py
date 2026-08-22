@@ -149,3 +149,56 @@ async def test_notify_subscription_activated_reports_when_not_sent(
 
     assert response.status_code == 200
     assert response.json() == {"success": True, "data": {"sent": False}, "error": None}
+
+
+async def test_notify_subscription_expired_rejects_missing_secret(client):
+    response = await client.post(
+        "/internal/notify/subscription-expired",
+        json={
+            "user_id": "2",
+            "username": "tester",
+            "tier_name": "Gold",
+            "expired_at": "2026-09-01T00:00:00+00:00",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+async def test_notify_subscription_expired_calls_discord_client(
+    client, fake_discord_client, auth_headers
+):
+    payload = {
+        "user_id": "2",
+        "username": "tester",
+        "tier_name": "Gold",
+        "expired_at": "2026-09-01T00:00:00+00:00",
+    }
+
+    response = await client.post(
+        "/internal/notify/subscription-expired", json=payload, headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"success": True, "data": {"sent": True}, "error": None}
+    assert fake_discord_client.expired_notify_calls == [payload]
+
+
+async def test_notify_subscription_expired_reports_when_not_sent(
+    client, fake_discord_client, auth_headers
+):
+    fake_discord_client.expired_notify_result = False
+
+    response = await client.post(
+        "/internal/notify/subscription-expired",
+        json={
+            "user_id": "2",
+            "username": "tester",
+            "tier_name": "Gold",
+            "expired_at": "2026-09-01T00:00:00+00:00",
+        },
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"success": True, "data": {"sent": False}, "error": None}

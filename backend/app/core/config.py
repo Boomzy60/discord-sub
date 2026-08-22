@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     nowpayments_api_key: str = ""
     nowpayments_ipn_secret: str = ""
 
+    expiration_check_interval_minutes: int = 15
+
     admin_discord_ids: str = ""
 
     @property

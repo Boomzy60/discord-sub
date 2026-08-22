@@ -5,6 +5,8 @@ import truststore
 # inspection with a root CA that's trusted by Windows but not by certifi.
 truststore.inject_into_ssl()
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,11 +23,20 @@ from app.api.routes import (
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
+from app.core.scheduler import shutdown_scheduler, start_scheduler
 
 configure_logging()
 settings = get_settings()
 
-app = FastAPI(title="Kiyomi Studio API")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    start_scheduler()
+    yield
+    shutdown_scheduler()
+
+
+app = FastAPI(title="Kiyomi Studio API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
