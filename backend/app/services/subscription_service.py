@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.models import Guild, Payment, Subscription, SubscriptionTier, TierRoleMapping, User, WebhookEvent
 from app.models.enums import PaymentProvider as PaymentProviderName
@@ -108,6 +109,23 @@ async def start_checkout(
     return payment, created.checkout_url
 
 
+async def get_role_ids_for_tier_and_below(db: AsyncSession, tier: SubscriptionTier) -> list[str]:
+    """Discord role ids for `tier` and every lower tier in the same guild.
+
+    Buying a higher tier grants every tier's role at or below it, so a subscriber's
+    roles stack as they move up instead of switching to a single role.
+    """
+    result = await db.execute(
+        select(TierRoleMapping.discord_role_id)
+        .join(SubscriptionTier, SubscriptionTier.id == TierRoleMapping.tier_id)
+        .where(
+            SubscriptionTier.guild_id == tier.guild_id,
+            SubscriptionTier.display_order <= tier.display_order,
+        )
+    )
+    return [role_id for (role_id,) in result.all()]
+
+
 async def activate_subscription(db: AsyncSession, payment: Payment) -> Subscription:
     """Mark `payment` paid, activate/extend its subscription, and grant the Discord role."""
     if payment.subscription_id is None:
@@ -155,15 +173,16 @@ async def activate_subscription(db: AsyncSession, payment: Payment) -> Subscript
         payment.paid_at = now
         await db.flush()
 
-    try:
-        await bot_client.assign_role(guild.guild_id, user.discord_id, mapping.discord_role_id)
-    except bot_client.BotClientError as exc:
-        logger.warning(
-            "Role assignment failed for user %s in guild %s (will retry on member join): %s",
-            user.discord_id,
-            guild.guild_id,
-            exc,
-        )
+    for role_id in await get_role_ids_for_tier_and_below(db, tier):
+        try:
+            await bot_client.assign_role(guild.guild_id, user.discord_id, role_id)
+        except bot_client.BotClientError as exc:
+            logger.warning(
+                "Role assignment failed for user %s in guild %s (will retry on member join): %s",
+                user.discord_id,
+                guild.guild_id,
+                exc,
+            )
 
     await bot_client.notify_subscription_activated(
         discord_user_id=user.discord_id,
@@ -182,22 +201,31 @@ async def get_active_role_ids_for_member(
 ) -> list[str]:
     """Return the Discord role ids `discord_user_id` should hold in `guild_id` right now.
 
+    Includes every tier's role at or below each of the member's currently active
+    subscriptions, so roles stack across tiers instead of only the exact tier purchased.
+
     Used by the bot's member-join handler to grant roles retroactively for members
-    who paid before joining the server (so `assign_role` had no member to grant to yet).
+    who paid before joining the server (so `assign_role` had no member to grant to yet),
+    and by the expiration sweep to check whether a role is still owed by another
+    still-active subscription before revoking it.
     """
     now = datetime.now(timezone.utc)
+    purchased_tier = aliased(SubscriptionTier)
     result = await db.execute(
         select(TierRoleMapping.discord_role_id)
         .join(SubscriptionTier, SubscriptionTier.id == TierRoleMapping.tier_id)
-        .join(Guild, Guild.id == TierRoleMapping.guild_id)
-        .join(Subscription, Subscription.tier_id == SubscriptionTier.id)
+        .join(purchased_tier, purchased_tier.guild_id == SubscriptionTier.guild_id)
+        .join(Subscription, Subscription.tier_id == purchased_tier.id)
         .join(User, User.id == Subscription.user_id)
+        .join(Guild, Guild.id == SubscriptionTier.guild_id)
         .where(
             User.discord_id == discord_user_id,
             Guild.guild_id == guild_id,
             Subscription.status == SubscriptionStatus.ACTIVE,
             Subscription.expires_at > now,
+            SubscriptionTier.display_order <= purchased_tier.display_order,
         )
+        .distinct()
     )
     return [role_id for (role_id,) in result.all()]
 

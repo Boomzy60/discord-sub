@@ -365,6 +365,74 @@ async def test_activate_subscription_raises_when_tier_has_no_role_mapping(db_ses
 
 
 @respx.mock
+async def _seed_ranked_tiers(db_session):
+    """Bronze/Silver/Gold in one guild, ranked by display_order, each with its own role."""
+    guild = Guild(guild_id="777", guild_name="Ranked Guild")
+    user = User(discord_id="888", username="climber")
+    db_session.add_all([guild, user])
+    await db_session.flush()
+
+    tiers = {}
+    for order, (name, role_id) in enumerate([("Bronze", "role-bronze"), ("Silver", "role-silver"), ("Gold", "role-gold")]):
+        tier = SubscriptionTier(
+            guild_id=guild.id,
+            name=name,
+            price=(order + 1) * 5,
+            currency="USD",
+            billing_period=BillingPeriod.MONTHLY,
+            duration_days=30,
+            display_order=order,
+        )
+        db_session.add(tier)
+        await db_session.flush()
+        db_session.add(TierRoleMapping(guild_id=guild.id, tier_id=tier.id, discord_role_id=role_id))
+        tiers[name] = tier
+    await db_session.commit()
+
+    return guild, tiers, user
+
+
+@respx.mock
+async def test_activate_subscription_grants_roles_for_tier_and_below(db_session):
+    settings = get_settings()
+    guild, tiers, user = await _seed_ranked_tiers(db_session)
+    provider = FakeProvider()
+    payment, _ = await start_checkout(db_session, user=user, tier=tiers["Gold"], provider=provider)
+
+    route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
+        return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
+    )
+
+    await activate_subscription(db_session, payment)
+
+    assert route.call_count == 3
+    assigned_roles = {json.loads(call.request.content)["role_id"] for call in route.calls}
+    assert assigned_roles == {"role-bronze", "role-silver", "role-gold"}
+
+
+@respx.mock
+async def test_activate_subscription_bottom_tier_only_grants_its_own_role(db_session):
+    settings = get_settings()
+    guild, tiers, user = await _seed_ranked_tiers(db_session)
+    provider = FakeProvider()
+    payment, _ = await start_checkout(db_session, user=user, tier=tiers["Bronze"], provider=provider)
+
+    route = respx.post(f"{settings.bot_internal_api_url}/internal/roles/assign").mock(
+        return_value=Response(200, json={"success": True, "data": {"assigned": True}, "error": None})
+    )
+    respx.post(f"{settings.bot_internal_api_url}/internal/notify/subscription-activated").mock(
+        return_value=Response(200, json={"success": True, "data": {"sent": True}, "error": None})
+    )
+
+    await activate_subscription(db_session, payment)
+
+    assert route.call_count == 1
+    assert json.loads(route.calls.last.request.content)["role_id"] == "role-bronze"
+
+
 async def test_activate_subscription_renewal_extends_from_current_expiry(db_session):
     settings = get_settings()
     _, tier, user = await _seed_guild_tier_user(db_session)
