@@ -61,6 +61,37 @@ async def test_create_payment_raises_when_order_creation_fails():
 
 
 @respx.mock
+async def test_capture_order_sends_json_content_type():
+    # PayPal rejects this endpoint with 415 Unsupported Media Type unless the request
+    # carries Content-Type: application/json, even though the body itself is empty.
+    _mock_token()
+    route = respx.post(f"{BASE_URL}/v2/checkout/orders/ORDER123/capture").mock(
+        return_value=Response(201, json={"id": "ORDER123", "status": "COMPLETED"})
+    )
+
+    provider = PayPalProvider()
+    result = await provider.capture_order("ORDER123")
+
+    assert result["status"] == "COMPLETED"
+    assert route.calls.last.request.headers["content-type"] == "application/json"
+
+
+@respx.mock
+async def test_capture_order_raises_on_api_failure():
+    _mock_token()
+    respx.post(f"{BASE_URL}/v2/checkout/orders/ORDER123/capture").mock(
+        return_value=Response(415, json={"name": "UNSUPPORTED_MEDIA_TYPE"})
+    )
+
+    provider = PayPalProvider()
+    try:
+        await provider.capture_order("ORDER123")
+        assert False, "expected PayPalAPIError"
+    except PayPalAPIError:
+        pass
+
+
+@respx.mock
 async def test_verify_webhook_returns_true_on_success_status():
     _mock_token()
     respx.post(f"{BASE_URL}/v1/notifications/verify-webhook-signature").mock(

@@ -112,6 +112,9 @@ class PayPalProvider(PaymentProvider):
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(
                 f"{self._base_url}/v2/checkout/orders/{order_id}/capture",
+                # PayPal rejects this endpoint with 415 Unsupported Media Type unless
+                # Content-Type: application/json is present, even for an empty body.
+                json={},
                 headers={"Authorization": f"Bearer {token}"},
             )
         if response.status_code not in (200, 201):
