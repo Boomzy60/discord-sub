@@ -47,39 +47,13 @@ async def test_create_payment_locks_invoice_to_pay_currency_when_given():
     assert json.loads(route.calls.last.request.content)["pay_currency"] == "btc"
 
 
-@respx.mock
-async def test_get_available_currencies_filters_by_amount():
-    def _handler(request):
-        currency_from = request.url.params["currency_from"]
-        fiat_equivalent = 5 if currency_from == "btc" else 999
-        return Response(
-            200,
-            json={
-                "currency_from": currency_from,
-                "currency_to": "usd",
-                "min_amount": 1,
-                "fiat_equivalent": fiat_equivalent,
-            },
-        )
-
-    respx.get(url__regex=rf"{BASE_URL}/min-amount.*").mock(side_effect=_handler)
+async def test_get_available_currencies_returns_full_curated_list_regardless_of_amount():
+    from app.services.payments.nowpayments import SUPPORTED_CURRENCIES
 
     provider = NOWPaymentsProvider()
-    available = await provider.get_available_currencies(amount=10, currency="usd")
+    available = await provider.get_available_currencies(amount=1, currency="usd")
 
-    assert [entry["code"] for entry in available] == ["btc"]
-
-
-@respx.mock
-async def test_get_available_currencies_skips_failed_lookups():
-    respx.get(url__regex=rf"{BASE_URL}/min-amount.*").mock(
-        return_value=Response(400, json={"message": "not convertable"})
-    )
-
-    provider = NOWPaymentsProvider()
-    available = await provider.get_available_currencies(amount=1000, currency="usd")
-
-    assert available == []
+    assert {entry["code"] for entry in available} == set(SUPPORTED_CURRENCIES)
 
 
 @respx.mock

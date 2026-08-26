@@ -1,6 +1,5 @@
 """NOWPayments crypto invoice + IPN integration."""
 
-import asyncio
 import hashlib
 import hmac
 import json
@@ -25,11 +24,11 @@ _STATUS_MAP = {
     "refunded": PaymentStatus.REFUNDED,
 }
 
-# NOWPayments enforces its own per-currency minimum payment amount (commonly $10+ in USD
-# terms regardless of coin, since it covers their processing fee, not just network fees).
-# A candidate currency is only worth offering if a tier's price can actually clear that
-# minimum, so this is the curated set of well-known coins we check `min_amount` for and
-# present to the customer, rather than every currency enabled on the NOWPayments account.
+# Curated set of well-known coins presented to the customer, rather than every currency
+# enabled on the NOWPayments account (it supports ~350). Note that NOWPayments still
+# enforces its own per-currency minimum payment amount (commonly $10+ in USD terms)
+# independent of this list, so a checkout can still be rejected by NOWPayments itself
+# for tiers priced below that.
 SUPPORTED_CURRENCIES: dict[str, str] = {
     "btc": "Bitcoin (BTC)",
     "eth": "Ethereum (ETH)",
@@ -75,41 +74,14 @@ class NOWPaymentsProvider(PaymentProvider):
     async def get_available_currencies(
         self, *, amount: float, currency: str
     ) -> list[dict[str, str]]:
-        """Return the `SUPPORTED_CURRENCIES` whose NOWPayments minimum payment amount,
-        converted to `currency`, is at or below `amount`.
+        """Return the full `SUPPORTED_CURRENCIES` list, regardless of `amount`/`currency`.
 
-        Presenting every NOWPayments-enabled currency regardless of the tier price leads
-        customers straight into a "not up to amount" rejection on NOWPayments' own page,
-        since most coins have a real-world minimum around $10+ in USD terms.
+        NOWPayments enforces its own per-currency minimum (commonly $10+ in USD terms)
+        independent of anything checked here, so a tier priced below that minimum can
+        still have its checkout rejected by NOWPayments itself even though every
+        currency is listed as an option.
         """
-        currency = currency.lower()
-
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            responses = await asyncio.gather(
-                *(
-                    client.get(
-                        f"{self._base_url}/min-amount",
-                        params={
-                            "currency_from": code,
-                            "currency_to": currency,
-                            "fiat_equivalent": currency,
-                        },
-                        headers={"x-api-key": self._api_key},
-                    )
-                    for code in SUPPORTED_CURRENCIES
-                ),
-                return_exceptions=True,
-            )
-
-        available: list[dict[str, str]] = []
-        for code, response in zip(SUPPORTED_CURRENCIES, responses):
-            if isinstance(response, Exception) or response.status_code != 200:
-                continue
-            min_fiat = response.json().get("fiat_equivalent")
-            if min_fiat is not None and min_fiat <= amount:
-                available.append({"code": code, "label": SUPPORTED_CURRENCIES[code]})
-
-        return available
+        return [{"code": code, "label": label} for code, label in SUPPORTED_CURRENCIES.items()]
 
     async def create_payment(
         self,

@@ -165,21 +165,11 @@ async def test_crypto_checkout_requires_authentication(client, db_session):
     assert response.status_code == 401
 
 
-def _mock_all_currencies_available():
-    respx.get(url__regex=rf"{NOWPAYMENTS_BASE_URL}/min-amount.*").mock(
-        return_value=Response(
-            200,
-            json={"currency_from": "btc", "currency_to": "usd", "min_amount": 1, "fiat_equivalent": 1},
-        )
-    )
-
-
 @respx.mock
 async def test_crypto_checkout_creates_pending_payment_and_returns_url(client, db_session):
     _, tier, user = await _seed_guild_tier_user(db_session)
     await _login(client, user)
 
-    _mock_all_currencies_available()
     respx.post(f"{NOWPAYMENTS_BASE_URL}/invoice").mock(
         return_value=Response(
             201, json={"id": "INV123", "invoice_url": "https://nowpayments.io/payment/INV123"}
@@ -196,54 +186,28 @@ async def test_crypto_checkout_creates_pending_payment_and_returns_url(client, d
 
 
 @respx.mock
-async def test_crypto_checkout_rejects_currency_below_minimum(client, db_session):
+async def test_crypto_checkout_rejects_unsupported_currency(client, db_session):
     _, tier, user = await _seed_guild_tier_user(db_session)
     await _login(client, user)
 
-    respx.get(url__regex=rf"{NOWPAYMENTS_BASE_URL}/min-amount.*").mock(
-        return_value=Response(
-            200,
-            json={
-                "currency_from": "btc",
-                "currency_to": "usd",
-                "min_amount": 1,
-                "fiat_equivalent": 999,
-            },
-        )
-    )
-
     response = await client.post(
-        f"/payments/crypto/checkout/{tier.id}", json={"pay_currency": "btc"}
+        f"/payments/crypto/checkout/{tier.id}", json={"pay_currency": "not-a-real-coin"}
     )
 
     assert response.status_code == 400
 
 
-@respx.mock
-async def test_list_crypto_currencies_filters_by_tier_price(client, db_session):
+async def test_list_crypto_currencies_returns_full_list_regardless_of_tier_price(client, db_session):
+    from app.services.payments.nowpayments import SUPPORTED_CURRENCIES
+
     _, tier, user = await _seed_guild_tier_user(db_session)
     await _login(client, user)
-
-    def _handler(request):
-        currency_from = request.url.params["currency_from"]
-        fiat_equivalent = 1 if currency_from == "btc" else 999
-        return Response(
-            200,
-            json={
-                "currency_from": currency_from,
-                "currency_to": "usd",
-                "min_amount": 1,
-                "fiat_equivalent": fiat_equivalent,
-            },
-        )
-
-    respx.get(url__regex=rf"{NOWPAYMENTS_BASE_URL}/min-amount.*").mock(side_effect=_handler)
 
     response = await client.get(f"/payments/crypto/currencies/{tier.id}")
 
     assert response.status_code == 200
     codes = {entry["code"] for entry in response.json()["data"]}
-    assert codes == {"btc"}
+    assert codes == set(SUPPORTED_CURRENCIES)
 
 
 @respx.mock
@@ -251,7 +215,6 @@ async def test_nowpayments_webhook_activates_subscription_and_assigns_role(clien
     guild, tier, user = await _seed_guild_tier_user(db_session)
     await _login(client, user)
 
-    _mock_all_currencies_available()
     respx.post(f"{NOWPAYMENTS_BASE_URL}/invoice").mock(
         return_value=Response(
             201, json={"id": "INV123", "invoice_url": "https://nowpayments.io/payment/INV123"}
