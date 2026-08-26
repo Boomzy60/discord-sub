@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     nowpayments_api_key: str = ""
     nowpayments_ipn_secret: str = ""
 
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+
     expiration_check_interval_minutes: int = 15
 
     admin_discord_ids: str = ""

@@ -22,7 +22,7 @@ export async function getTiers(): Promise<Tier[]> {
   return body.data ?? [];
 }
 
-export type PaymentMethod = "paypal" | "crypto";
+export type PaymentMethod = "paypal" | "stripe" | "crypto";
 
 export interface CheckoutResult {
   checkout_url: string;
@@ -53,6 +53,10 @@ async function startCheckout(
 
 export function createPayPalCheckout(tierId: string): Promise<CheckoutResult> {
   return startCheckout("paypal", tierId);
+}
+
+export function createStripeCheckout(tierId: string): Promise<CheckoutResult> {
+  return startCheckout("stripe", tierId);
 }
 
 export function createCryptoCheckout(tierId: string, payCurrency: string): Promise<CheckoutResult> {

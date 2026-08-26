@@ -6,19 +6,27 @@ import { Button } from "@/components/ui/button";
 import {
   createCryptoCheckout,
   createPayPalCheckout,
+  createStripeCheckout,
   getCryptoCurrencies,
   type PaymentMethod,
 } from "@/lib/api";
 import type { CryptoCurrency } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+// PayPal account is temporarily restricted (pending bank review) — re-enable by
+// flipping this back once it's resolved.
+const PAYPAL_ENABLED = false;
+
 const METHODS: { id: PaymentMethod; label: string; description: string }[] = [
-  { id: "paypal", label: "PayPal", description: "Pay with your PayPal balance or card" },
+  ...(PAYPAL_ENABLED
+    ? [{ id: "paypal" as const, label: "PayPal", description: "Pay with your PayPal balance or card" }]
+    : []),
+  { id: "stripe", label: "Card", description: "Pay with a debit or credit card via Stripe" },
   { id: "crypto", label: "Crypto", description: "Pay with Bitcoin, Ethereum, and more" },
 ];
 
 export function PaymentMethodSelector({ tierId }: { tierId: string }) {
-  const [method, setMethod] = useState<PaymentMethod>("paypal");
+  const [method, setMethod] = useState<PaymentMethod>(METHODS[0].id);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +54,9 @@ export function PaymentMethodSelector({ tierId }: { tierId: string }) {
       const result =
         method === "paypal"
           ? await createPayPalCheckout(tierId)
-          : await createCryptoCheckout(tierId, selectedCurrency);
+          : method === "stripe"
+            ? await createStripeCheckout(tierId)
+            : await createCryptoCheckout(tierId, selectedCurrency);
       window.location.href = result.checkout_url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -60,7 +70,7 @@ export function PaymentMethodSelector({ tierId }: { tierId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className={cn("grid gap-3", METHODS.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
         {METHODS.map((option) => (
           <button
             key={option.id}
@@ -87,8 +97,7 @@ export function PaymentMethodSelector({ tierId }: { tierId: string }) {
           {currenciesError && <p className="text-sm text-destructive">{currenciesError}</p>}
           {cryptoUnavailable && (
             <p className="text-sm text-destructive">
-              Crypto isn&apos;t available for this plan&apos;s price right now — please pay with
-              PayPal instead.
+              {"Crypto isn't available for this plan's price right now — please pay with a card instead."}
             </p>
           )}
           {currencies !== null && currencies.length > 0 && (

@@ -12,6 +12,7 @@ class SubscriptionStatus(str, enum.Enum):
 class PaymentProvider(str, enum.Enum):
     PAYPAL = "PAYPAL"
     NOWPAYMENTS = "NOWPAYMENTS"
+    STRIPE = "STRIPE"
 
 
 class PaymentStatus(str, enum.Enum):

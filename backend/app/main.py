@@ -16,10 +16,12 @@ from app.api.routes import (
     internal,
     payments_crypto,
     payments_paypal,
+    payments_stripe,
     subscriptions,
     tiers,
     webhooks_nowpayments,
     webhooks_paypal,
+    webhooks_stripe,
 )
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
@@ -54,7 +56,9 @@ app.include_router(auth.router)
 app.include_router(tiers.router)
 app.include_router(subscriptions.router)
 app.include_router(payments_paypal.router)
+app.include_router(payments_stripe.router)
 app.include_router(payments_crypto.router)
 app.include_router(webhooks_paypal.router)
+app.include_router(webhooks_stripe.router)
 app.include_router(webhooks_nowpayments.router)
 app.include_router(internal.router)
