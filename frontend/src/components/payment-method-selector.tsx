@@ -20,11 +20,7 @@ const METHODS: { id: PaymentMethod; label: string; description: string }[] = [
     ? [{ id: "paypal" as const, label: "PayPal", description: "Pay with your PayPal balance or card" }]
     : []),
   { id: "stripe", label: "Card", description: "Pay with a debit or credit card via Stripe" },
-  {
-    id: "crypto",
-    label: "Crypto",
-    description: "Pay with Bitcoin, Ethereum, and more — pick your coin on the next page",
-  },
+  { id: "crypto", label: "Crypto", description: "Pay with Bitcoin, Ethereum, and more" },
 ];
 
 export function PaymentMethodSelector({ tierId }: { tierId: string }) {
