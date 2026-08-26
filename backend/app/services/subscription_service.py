@@ -45,7 +45,6 @@ async def start_checkout(
     user: User,
     tier: SubscriptionTier,
     provider: PaymentProvider,
-    pay_currency: str | None = None,
 ) -> tuple[Payment, str]:
     """Start a provider checkout for `user` + `tier`.
 
@@ -81,13 +80,11 @@ async def start_checkout(
     # as the transaction id used to look up the Payment row on webhook, so
     # it must stay unique per attempt even when the subscription is reused.
     reference = str(uuid4())
-    extra_kwargs = {"pay_currency": pay_currency} if pay_currency else {}
     created = await provider.create_payment(
         amount=float(tier.price),
         currency=tier.currency,
         reference=reference,
         description=f"{tier.name} subscription",
-        **extra_kwargs,
     )
 
     payment = Payment(

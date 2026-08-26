@@ -32,31 +32,6 @@ async def test_create_payment_returns_invoice_url_and_uses_reference_as_transact
 
 
 @respx.mock
-async def test_create_payment_locks_invoice_to_pay_currency_when_given():
-    route = respx.post(f"{BASE_URL}/invoice").mock(
-        return_value=Response(
-            201, json={"id": "INV123", "invoice_url": "https://nowpayments.io/payment/INV123"}
-        )
-    )
-
-    provider = NOWPaymentsProvider()
-    await provider.create_payment(
-        amount=20, currency="usd", reference="r", description="d", pay_currency="btc"
-    )
-
-    assert json.loads(route.calls.last.request.content)["pay_currency"] == "btc"
-
-
-async def test_get_available_currencies_returns_full_curated_list_regardless_of_amount():
-    from app.services.payments.nowpayments import SUPPORTED_CURRENCIES
-
-    provider = NOWPaymentsProvider()
-    available = await provider.get_available_currencies(amount=1, currency="usd")
-
-    assert {entry["code"] for entry in available} == set(SUPPORTED_CURRENCIES)
-
-
-@respx.mock
 async def test_create_payment_raises_on_api_failure():
     respx.post(f"{BASE_URL}/invoice").mock(return_value=Response(400, json={"error": "bad"}))
 

@@ -24,29 +24,6 @@ _STATUS_MAP = {
     "refunded": PaymentStatus.REFUNDED,
 }
 
-# Curated set of well-known coins presented to the customer, rather than every currency
-# enabled on the NOWPayments account (it supports ~350). Note that NOWPayments still
-# enforces its own per-currency minimum payment amount (commonly $10+ in USD terms)
-# independent of this list, so a checkout can still be rejected by NOWPayments itself
-# for tiers priced below that.
-SUPPORTED_CURRENCIES: dict[str, str] = {
-    "btc": "Bitcoin (BTC)",
-    "eth": "Ethereum (ETH)",
-    "ltc": "Litecoin (LTC)",
-    "trx": "TRON (TRX)",
-    "usdttrc20": "USDT (TRC-20)",
-    "usdterc20": "USDT (ERC-20)",
-    "usdc": "USD Coin (USDC)",
-    "xrp": "XRP",
-    "doge": "Dogecoin (DOGE)",
-    "sol": "Solana (SOL)",
-    "bnbbsc": "BNB (BSC)",
-    "ton": "Toncoin (TON)",
-    "bch": "Bitcoin Cash (BCH)",
-    "ada": "Cardano (ADA)",
-}
-
-
 class NOWPaymentsAPIError(Exception):
     """Raised when a call to the NOWPayments REST API fails."""
 
@@ -71,18 +48,6 @@ class NOWPaymentsProvider(PaymentProvider):
         self._success_url = f"{settings.frontend_base_url}/checkout/success"
         self._cancel_url = f"{settings.frontend_base_url}/checkout/cancel"
 
-    async def get_available_currencies(
-        self, *, amount: float, currency: str
-    ) -> list[dict[str, str]]:
-        """Return the full `SUPPORTED_CURRENCIES` list, regardless of `amount`/`currency`.
-
-        NOWPayments enforces its own per-currency minimum (commonly $10+ in USD terms)
-        independent of anything checked here, so a tier priced below that minimum can
-        still have its checkout rejected by NOWPayments itself even though every
-        currency is listed as an option.
-        """
-        return [{"code": code, "label": label} for code, label in SUPPORTED_CURRENCIES.items()]
-
     async def create_payment(
         self,
         *,
@@ -90,10 +55,11 @@ class NOWPaymentsProvider(PaymentProvider):
         currency: str,
         reference: str,
         description: str,
-        pay_currency: str | None = None,
     ) -> CreatedPayment:
         # NOWPayments IPNs always echo back our `order_id`, but not necessarily the
         # invoice `id`, so `reference` (order_id) is what we use to correlate later.
+        # No `pay_currency` is set, so NOWPayments' own hosted invoice page lets the
+        # customer pick from every currency enabled on the account.
         invoice_payload = {
             "price_amount": amount,
             "price_currency": currency,
@@ -103,10 +69,6 @@ class NOWPaymentsProvider(PaymentProvider):
             "success_url": self._success_url,
             "cancel_url": self._cancel_url,
         }
-        if pay_currency:
-            # Locks the hosted invoice to this single currency so NOWPayments' own page
-            # can't offer a coin we already know won't clear its minimum for this amount.
-            invoice_payload["pay_currency"] = pay_currency
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(

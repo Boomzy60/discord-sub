@@ -176,38 +176,11 @@ async def test_crypto_checkout_creates_pending_payment_and_returns_url(client, d
         )
     )
 
-    response = await client.post(
-        f"/payments/crypto/checkout/{tier.id}", json={"pay_currency": "btc"}
-    )
+    response = await client.post(f"/payments/crypto/checkout/{tier.id}")
 
     assert response.status_code == 200
     body = response.json()
     assert body["data"]["checkout_url"] == "https://nowpayments.io/payment/INV123"
-
-
-@respx.mock
-async def test_crypto_checkout_rejects_unsupported_currency(client, db_session):
-    _, tier, user = await _seed_guild_tier_user(db_session)
-    await _login(client, user)
-
-    response = await client.post(
-        f"/payments/crypto/checkout/{tier.id}", json={"pay_currency": "not-a-real-coin"}
-    )
-
-    assert response.status_code == 400
-
-
-async def test_list_crypto_currencies_returns_full_list_regardless_of_tier_price(client, db_session):
-    from app.services.payments.nowpayments import SUPPORTED_CURRENCIES
-
-    _, tier, user = await _seed_guild_tier_user(db_session)
-    await _login(client, user)
-
-    response = await client.get(f"/payments/crypto/currencies/{tier.id}")
-
-    assert response.status_code == 200
-    codes = {entry["code"] for entry in response.json()["data"]}
-    assert codes == set(SUPPORTED_CURRENCIES)
 
 
 @respx.mock
@@ -220,9 +193,7 @@ async def test_nowpayments_webhook_activates_subscription_and_assigns_role(clien
             201, json={"id": "INV123", "invoice_url": "https://nowpayments.io/payment/INV123"}
         )
     )
-    checkout_response = await client.post(
-        f"/payments/crypto/checkout/{tier.id}", json={"pay_currency": "btc"}
-    )
+    checkout_response = await client.post(f"/payments/crypto/checkout/{tier.id}")
     assert checkout_response.status_code == 200
     payment_reference = checkout_response.json()["data"]["payment_id"]
 

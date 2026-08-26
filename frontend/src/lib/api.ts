@@ -1,4 +1,4 @@
-import type { ApiEnvelope, CryptoCurrency, Tier } from "@/lib/types";
+import type { ApiEnvelope, Tier } from "@/lib/types";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
@@ -59,20 +59,6 @@ export function createStripeCheckout(tierId: string): Promise<CheckoutResult> {
   return startCheckout("stripe", tierId);
 }
 
-export function createCryptoCheckout(tierId: string, payCurrency: string): Promise<CheckoutResult> {
-  return startCheckout("crypto", tierId, { pay_currency: payCurrency });
-}
-
-export async function getCryptoCurrencies(tierId: string): Promise<CryptoCurrency[]> {
-  const response = await fetch(`${API_BASE_URL}/payments/crypto/currencies/${tierId}`, {
-    credentials: "include",
-  });
-
-  const body = (await response.json()) as ApiEnvelope<CryptoCurrency[]>;
-  if (!response.ok || !body.data) {
-    const message = typeof body.error === "string" ? body.error : "Failed to load currencies";
-    throw new Error(message);
-  }
-
-  return body.data;
+export function createCryptoCheckout(tierId: string): Promise<CheckoutResult> {
+  return startCheckout("crypto", tierId);
 }
