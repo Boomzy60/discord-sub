@@ -14,12 +14,16 @@ import { cn } from "@/lib/utils";
 // PayPal account is temporarily restricted (pending bank review) — re-enable by
 // flipping this back once it's resolved.
 const PAYPAL_ENABLED = false;
+// Card payments disabled for now — re-enable by flipping this back once ready.
+const STRIPE_ENABLED = false;
 
 const METHODS: { id: PaymentMethod; label: string; description: string }[] = [
   ...(PAYPAL_ENABLED
     ? [{ id: "paypal" as const, label: "PayPal", description: "Pay with your PayPal balance or card" }]
     : []),
-  { id: "stripe", label: "Card", description: "Pay with a debit or credit card via Stripe" },
+  ...(STRIPE_ENABLED
+    ? [{ id: "stripe" as const, label: "Card", description: "Pay with a debit or credit card via Stripe" }]
+    : []),
   { id: "crypto", label: "Crypto", description: "Pay with Bitcoin, Ethereum, and more" },
 ];
 
