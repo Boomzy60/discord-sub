@@ -1,5 +1,6 @@
 """NOWPayments crypto invoice + IPN integration."""
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -23,6 +24,29 @@ _STATUS_MAP = {
     "expired": PaymentStatus.EXPIRED,
     "refunded": PaymentStatus.REFUNDED,
 }
+
+# Curated set of well-known coins presented to the customer, rather than every currency
+# enabled on the NOWPayments account (it supports ~350). BTC's real minimum runs far
+# above the rest of this list (~$25+ vs ~$11-13 for everything else here), which is why
+# `get_available_currencies` still checks live rather than treating this list as safe
+# by itself.
+SUPPORTED_CURRENCIES: dict[str, str] = {
+    "btc": "Bitcoin (BTC)",
+    "eth": "Ethereum (ETH)",
+    "ltc": "Litecoin (LTC)",
+    "trx": "TRON (TRX)",
+    "usdttrc20": "USDT (TRC-20)",
+    "usdterc20": "USDT (ERC-20)",
+    "usdc": "USD Coin (USDC)",
+    "xrp": "XRP",
+    "doge": "Dogecoin (DOGE)",
+    "sol": "Solana (SOL)",
+    "bnbbsc": "BNB (BSC)",
+    "ton": "Toncoin (TON)",
+    "bch": "Bitcoin Cash (BCH)",
+    "ada": "Cardano (ADA)",
+}
+
 
 class NOWPaymentsAPIError(Exception):
     """Raised when a call to the NOWPayments REST API fails."""
@@ -48,6 +72,46 @@ class NOWPaymentsProvider(PaymentProvider):
         self._success_url = f"{settings.frontend_base_url}/checkout/success"
         self._cancel_url = f"{settings.frontend_base_url}/checkout/cancel"
 
+    async def get_available_currencies(
+        self, *, amount: float, currency: str
+    ) -> list[dict[str, str]]:
+        """Return the `SUPPORTED_CURRENCIES` whose NOWPayments minimum payment amount,
+        converted to `currency`, is at or below `amount`.
+
+        Presenting every NOWPayments-enabled currency regardless of the tier price leads
+        customers straight into a "not up to amount" rejection on NOWPayments' own page
+        (BTC in particular runs ~$25+ regardless of tier price), so this is checked live
+        rather than assumed from a static list.
+        """
+        currency = currency.lower()
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            responses = await asyncio.gather(
+                *(
+                    client.get(
+                        f"{self._base_url}/min-amount",
+                        params={
+                            "currency_from": code,
+                            "currency_to": currency,
+                            "fiat_equivalent": currency,
+                        },
+                        headers={"x-api-key": self._api_key},
+                    )
+                    for code in SUPPORTED_CURRENCIES
+                ),
+                return_exceptions=True,
+            )
+
+        available: list[dict[str, str]] = []
+        for code, response in zip(SUPPORTED_CURRENCIES, responses):
+            if isinstance(response, Exception) or response.status_code != 200:
+                continue
+            min_fiat = response.json().get("fiat_equivalent")
+            if min_fiat is not None and min_fiat <= amount:
+                available.append({"code": code, "label": SUPPORTED_CURRENCIES[code]})
+
+        return available
+
     async def create_payment(
         self,
         *,
@@ -55,11 +119,10 @@ class NOWPaymentsProvider(PaymentProvider):
         currency: str,
         reference: str,
         description: str,
+        pay_currency: str | None = None,
     ) -> CreatedPayment:
         # NOWPayments IPNs always echo back our `order_id`, but not necessarily the
         # invoice `id`, so `reference` (order_id) is what we use to correlate later.
-        # No `pay_currency` is set, so NOWPayments' own hosted invoice page lets the
-        # customer pick from every currency enabled on the account.
         invoice_payload = {
             "price_amount": amount,
             "price_currency": currency,
@@ -69,6 +132,10 @@ class NOWPaymentsProvider(PaymentProvider):
             "success_url": self._success_url,
             "cancel_url": self._cancel_url,
         }
+        if pay_currency:
+            # Locks the hosted invoice to this single currency so NOWPayments' own page
+            # can't offer a coin we already know won't clear its minimum for this amount.
+            invoice_payload["pay_currency"] = pay_currency
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(
