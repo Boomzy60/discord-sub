@@ -33,7 +33,7 @@ def _seed_tiers() -> list[TierCreate]:
         TierCreate(
             name="Bronze (3 Month)",
             description="1 Shiny regular pokemon/Month",
-            price=15.00,
+            price=12.00,
             billing_period=BillingPeriod.QUARTERLY,
             duration_days=90,
             discord_role_id=settings.discord_role_id_tier_1 or "000000000000000001",
@@ -49,7 +49,7 @@ def _seed_tiers() -> list[TierCreate]:
         TierCreate(
             name="Silver (3 Month)",
             description="1 Shiny Legendary or Mythical pokemon/Month",
-            price=30.00,
+            price=24.00,
             billing_period=BillingPeriod.QUARTERLY,
             duration_days=90,
             discord_role_id=settings.discord_role_id_tier_2 or "000000000000000002",
@@ -65,7 +65,7 @@ def _seed_tiers() -> list[TierCreate]:
         TierCreate(
             name="Gold (3 Month)",
             description="2 Shiny Legendary or Mythical pokemon and 1 Shiny regular pokemon/Month",
-            price=60.00,
+            price=48.00,
             billing_period=BillingPeriod.QUARTERLY,
             duration_days=90,
             discord_role_id=settings.discord_role_id_tier_3 or "000000000000000003",

@@ -24,7 +24,7 @@ export default async function PricingPage() {
               key={tier.id}
               tier={tier}
               isLoggedIn={user !== null}
-              highlighted={tier.name === "Silver"}
+              highlighted={tier.name === "Bronze (3 Month)"}
             />
           ))}
         </div>
