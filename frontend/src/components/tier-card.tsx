@@ -15,6 +15,13 @@ import { discordLoginUrl } from "@/lib/api";
 import type { Tier } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+const BILLING_LABEL: Record<Tier["billing_period"], string> = {
+  MONTHLY: "month",
+  QUARTERLY: "3 months",
+  YEARLY: "year",
+  LIFETIME: "lifetime",
+};
+
 export function TierCard({
   tier,
   isLoggedIn,
@@ -38,7 +45,7 @@ export function TierCard({
         <CardTitle className="text-xl">{tier.name}</CardTitle>
         <CardDescription>
           <span className="text-3xl font-bold text-foreground">${tier.price.toFixed(2)}</span>
-          <span className="text-muted-foreground"> / month</span>
+          <span className="text-muted-foreground"> / {BILLING_LABEL[tier.billing_period]}</span>
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1">

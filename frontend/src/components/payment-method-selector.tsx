@@ -101,7 +101,7 @@ export function PaymentMethodSelector({ tierId }: { tierId: string }) {
           {currenciesError && <p className="text-sm text-destructive">{currenciesError}</p>}
           {cryptoUnavailable && (
             <p className="text-sm text-destructive">
-              {"Crypto isn't available for this plan's price right now. Please check back soon."}
+              {"Crypto needs at least $12. Try the 3 month plan instead."}
             </p>
           )}
           {currencies !== null && currencies.length > 0 && (

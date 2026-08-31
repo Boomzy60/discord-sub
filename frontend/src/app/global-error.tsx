@@ -19,7 +19,7 @@ export default function GlobalError({
         <div style={{ maxWidth: 420, margin: "6rem auto", textAlign: "center", padding: "0 1rem" }}>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 700 }}>Something went wrong</h1>
           <p style={{ color: "#666", marginTop: "0.5rem" }}>
-            We couldn&apos;t load the site. This is usually temporary — try again in a moment.
+            We couldn&apos;t load the site. Try again in a moment.
           </p>
           <button
             onClick={reset}

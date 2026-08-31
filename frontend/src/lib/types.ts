@@ -26,6 +26,7 @@ export interface Tier {
   description: string | null;
   price: number;
   currency: string;
+  billing_period: "MONTHLY" | "QUARTERLY" | "YEARLY" | "LIFETIME";
   duration_days: number;
   active: boolean;
   display_order: number;

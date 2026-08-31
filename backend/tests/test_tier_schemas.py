@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
+from app.models.enums import BillingPeriod
 from app.models.subscription_tier import SubscriptionTier
 from app.models.tier_role_mapping import TierRoleMapping
 from app.schemas.subscription_tier import TierCreate, TierOut
@@ -29,6 +30,7 @@ def test_tier_out_from_tier_flattens_role_mapping():
         description="Perk one\nPerk two",
         price=4.99,
         currency="USD",
+        billing_period=BillingPeriod.MONTHLY,
         duration_days=30,
         active=True,
         display_order=0,

@@ -9,8 +9,8 @@ export default function CheckoutSuccessPage() {
       <CheckCircle2 className="mx-auto size-12 text-primary" />
       <h1 className="mt-4 text-2xl font-bold">Payment received</h1>
       <p className="mt-3 text-muted-foreground">
-        We&apos;re confirming your payment now. Your Discord role is granted automatically as
-        soon as it clears — no further action needed.
+        We&apos;re confirming your payment now. Your Discord role is granted automatically once
+        it clears. No further action needed.
       </p>
       <Button render={<Link href="/dashboard" />} nativeButton={false} className="mt-6">
         Go to dashboard

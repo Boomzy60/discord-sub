@@ -15,16 +15,16 @@ export default async function PricingPage() {
       </div>
       {tiers.length === 0 ? (
         <p className="text-center text-muted-foreground">
-          No plans available yet — check back soon.
+          No plans available yet. Check back soon.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {tiers.map((tier, index) => (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {tiers.map((tier) => (
             <TierCard
               key={tier.id}
               tier={tier}
               isLoggedIn={user !== null}
-              highlighted={tiers.length === 3 && index === 1}
+              highlighted={tier.name === "Silver"}
             />
           ))}
         </div>

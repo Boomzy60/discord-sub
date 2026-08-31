@@ -7,7 +7,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.enums import BillingPeriod
 from app.models.subscription_tier import SubscriptionTier
 from app.models.tier_role_mapping import TierRoleMapping
 from app.schemas.subscription_tier import TierCreate, TierUpdate
@@ -40,14 +39,14 @@ async def list_tiers(db: AsyncSession, guild_id: uuid.UUID, *, only_active: bool
 
 
 async def create_tier(db: AsyncSession, guild_id: uuid.UUID, data: TierCreate) -> SubscriptionTier:
-    """Create a tier and its Discord role mapping. MVP is monthly-only, so billing period is fixed."""
+    """Create a tier and its Discord role mapping."""
     tier = SubscriptionTier(
         guild_id=guild_id,
         name=data.name,
         description=data.description,
         price=data.price,
         currency=data.currency,
-        billing_period=BillingPeriod.MONTHLY,
+        billing_period=data.billing_period,
         duration_days=data.duration_days,
     )
     db.add(tier)

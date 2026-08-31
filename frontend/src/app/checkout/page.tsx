@@ -38,7 +38,10 @@ export default async function CheckoutPage(props: PageProps<"/checkout">) {
       <div className="mt-6 flex items-center justify-between rounded-lg border border-border bg-card p-4">
         <span className="font-medium">{tier.name}</span>
         <span className="font-bold">
-          ${tier.price.toFixed(2)} <span className="font-normal text-muted-foreground">/ month</span>
+          ${tier.price.toFixed(2)}{" "}
+          <span className="font-normal text-muted-foreground">
+            / {tier.billing_period === "QUARTERLY" ? "3 months" : "month"}
+          </span>
         </span>
       </div>
       <p className="mt-4 text-sm text-muted-foreground">Choose how you&apos;d like to pay.</p>
